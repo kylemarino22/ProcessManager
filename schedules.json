@@ -1,0 +1,39 @@
+{
+    "schedules": [
+      {
+        "type": "task",
+        "name": "task 1",
+        "func": "path.to.script.func0",
+        "start": "10 am pst",
+        "freq": "7m",
+        "stop": "11:30 pm pst",
+        "run_on_complete": ["task 2"],
+        "dependencies": ["IB Monitor"]
+      },
+      {
+        "type": "task",
+        "name": "task 2",
+        "func": "path.to.script.func1",
+        "output_file": ""
+      },
+      {
+        "type": "program",
+        "name": "IB Monitor",
+        "command": ["python", "path/to/ib_monitor.py"],
+        "output_file": "path/to/ib_monitor_output.log",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10
+      },
+      {
+        "type": "program",
+        "name": "Data Server",
+        "command": ["python", "path/to/data_server_script.py"],
+        "output_file": "path/to/data_server_output.log",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10
+      }
+    ]
+  }
+  

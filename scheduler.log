@@ -1,0 +1,233 @@
+2025-03-16 11:06:33,563 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:06:33,563 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:06:33,564 - Scheduler - DEBUG - Initialization complete with 2 programs and 2 tasks
+2025-03-16 11:06:33,564 - Scheduler - INFO - Starting all programs
+2025-03-16 11:06:33,564 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:07:49,216 - Scheduler - INFO - Scheduler shutting down
+2025-03-16 11:08:00,184 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:08:00,184 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:08:00,185 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:08:00,185 - Scheduler - INFO - Starting all programs
+2025-03-16 11:08:00,185 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:09:06,197 - Scheduler - INFO - Scheduler shutting down
+2025-03-16 11:09:29,879 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:09:29,879 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:09:29,880 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:09:29,880 - Scheduler - INFO - Starting all programs
+2025-03-16 11:09:29,880 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:11:01,993 - Scheduler - INFO - Scheduler shutting down
+2025-03-16 11:11:18,015 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:11:18,015 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:11:18,016 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:11:18,016 - Scheduler - INFO - Starting all programs
+2025-03-16 11:11:18,016 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:11:45,104 - Scheduler - INFO - Scheduler shutting down
+2025-03-16 11:11:48,859 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:11:48,859 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:11:48,860 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:11:48,860 - Scheduler - INFO - Starting all programs
+2025-03-16 11:11:48,860 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:17:33,666 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:17:42,427 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:17:42,428 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:17:42,428 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:17:42,428 - Scheduler - INFO - Starting all programs
+2025-03-16 11:17:42,428 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:17:57,916 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:18:39,637 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:18:39,637 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:18:39,637 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:18:39,637 - Scheduler - INFO - Starting all programs
+2025-03-16 11:18:39,637 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:20:13,552 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:23:29,753 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:23:29,753 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:23:29,753 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:23:29,754 - Scheduler - INFO - Starting all programs
+2025-03-16 11:23:29,754 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:23:59,222 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:24:08,395 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:24:08,395 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:24:08,395 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:24:08,395 - Scheduler - INFO - Starting all programs
+2025-03-16 11:24:08,395 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:24:21,990 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:26:29,994 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:26:29,995 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:26:29,995 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:26:29,995 - Scheduler - INFO - Starting all programs
+2025-03-16 11:26:29,995 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:26:57,261 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:28:15,223 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:28:15,223 - Scheduler - DEBUG - Loading schedules
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:28:58,066 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:28:58,066 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:28:58,066 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:28:58,066 - Scheduler - INFO - Starting all programs
+2025-03-16 11:28:58,066 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:29:27,575 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:29:33,562 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:29:33,562 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:29:33,562 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:29:33,562 - Scheduler - INFO - Starting all programs
+2025-03-16 11:29:33,562 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:29:54,980 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:30:18,407 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:30:18,407 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:30:18,407 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:30:18,407 - Scheduler - INFO - Starting all programs
+2025-03-16 11:30:18,407 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:32:09,535 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:35:45,414 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:35:45,414 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:35:45,414 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:35:45,414 - Scheduler - INFO - Starting all programs
+2025-03-16 11:35:45,414 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:35:57,209 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:36:01,057 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:36:01,057 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:36:01,057 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:36:01,057 - Scheduler - INFO - Starting all programs
+2025-03-16 11:36:01,057 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:36:04,578 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:36:31,981 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:36:31,981 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:36:31,981 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:36:31,981 - Scheduler - INFO - Starting all programs
+2025-03-16 11:36:31,981 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:36:43,142 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:38:20,362 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:38:20,362 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:38:20,362 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:38:20,362 - Scheduler - INFO - Starting all programs
+2025-03-16 11:38:20,362 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:38:30,402 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:38:36,198 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:38:36,198 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:38:36,198 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:38:36,198 - Scheduler - INFO - Starting all programs
+2025-03-16 11:38:36,198 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:38:42,140 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:43:01,639 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:43:01,639 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:43:01,639 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:43:01,639 - Scheduler - INFO - Starting all programs
+2025-03-16 11:43:01,639 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:43:08,948 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:46:35,451 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:46:35,451 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:46:35,451 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:46:35,451 - Scheduler - INFO - Starting all programs
+2025-03-16 11:46:35,451 - Scheduler - INFO - Scheduling tasks
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:47:09,246 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:47:09,246 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:47:09,246 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:47:09,246 - Scheduler - INFO - Starting all programs
+2025-03-16 11:47:09,246 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:49:34,501 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:49:36,195 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:49:36,195 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:49:36,195 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:49:36,195 - Scheduler - INFO - Starting all programs
+2025-03-16 11:49:36,195 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:50:12,389 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:50:13,935 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:50:13,935 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:50:13,936 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:50:13,936 - Scheduler - INFO - Starting all programs
+2025-03-16 11:50:13,936 - Scheduler - INFO - Scheduling tasks
+2025-03-16 11:56:58,027 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:57:01,336 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:57:01,336 - Scheduler - DEBUG - Loading schedules
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:58:42,587 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:58:42,587 - Scheduler - DEBUG - Loading schedules
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 11:58:56,396 - Scheduler - INFO - Scheduler starting
+2025-03-16 11:58:56,396 - Scheduler - DEBUG - Loading schedules
+2025-03-16 11:58:56,396 - Scheduler - DEBUG - Initialization complete with 0 programs and 1 tasks
+2025-03-16 11:58:56,397 - Scheduler - INFO - Starting all programs
+2025-03-16 11:58:56,397 - Scheduler - INFO - Scheduling tasks
+2025-03-16 12:03:11,344 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:03:13,650 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:03:13,650 - Scheduler - DEBUG - Loading schedules
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:03:45,445 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:03:45,445 - Scheduler - DEBUG - Loading schedules
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:12:22,314 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:12:22,314 - Scheduler - DEBUG - Loading schedules
+2025-03-16 12:12:22,314 - Scheduler - DEBUG - Initialization complete with 0 programs and 2 tasks
+2025-03-16 12:12:22,314 - Scheduler - INFO - Starting all programs
+2025-03-16 12:12:22,314 - Scheduler - INFO - Scheduling tasks
+2025-03-16 12:15:29,893 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:15:32,638 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:15:32,638 - Scheduler - DEBUG - Loading schedules
+2025-03-16 12:15:32,639 - Scheduler - DEBUG - Initialization complete with 0 programs and 2 tasks
+2025-03-16 12:15:32,639 - Scheduler - INFO - Starting all programs
+2025-03-16 12:15:32,639 - Scheduler - INFO - Scheduling tasks
+2025-03-16 12:18:17,837 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:20:30,371 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:20:30,371 - Scheduler - DEBUG - Loading schedules
+2025-03-16 12:20:30,371 - Scheduler - DEBUG - Initialization complete with 0 programs and 2 tasks
+2025-03-16 12:20:30,371 - Scheduler - INFO - Starting all programs
+2025-03-16 12:20:30,371 - Scheduler - INFO - Scheduling tasks
+2025-03-16 12:21:06,988 - Scheduler - INFO - Scheduler shutting down
+
+====================== [Process Manager Restarted] =======================
+2025-03-16 12:23:26,608 - Scheduler - INFO - Scheduler starting
+2025-03-16 12:23:26,608 - Scheduler - DEBUG - Loading schedules
+2025-03-16 12:23:26,609 - Scheduler - DEBUG - Initialization complete with 0 programs and 2 tasks
+2025-03-16 12:23:26,609 - Scheduler - INFO - Starting all programs
+2025-03-16 12:23:26,609 - Scheduler - INFO - Scheduling tasks
+2025-03-16 19:55:17,680 - Scheduler - INFO - Scheduler shutting down

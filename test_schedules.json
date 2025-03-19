@@ -1,0 +1,21 @@
+{
+    "schedules": [
+      {
+        "type": "task",
+        "name": "task 1",
+        "func": "example_scripts.example_task.task1",
+        "start": "11:31 am pst",
+        "freq" : "1 m",
+        "log_path": "logs/task_1.log",
+        "run_on_complete": ["task 2"]
+      },
+
+      {
+        "type": "task",
+        "name": "task 2",
+        "func": "example_scripts.example_task.task2",
+        "log_path": "logs/task_2.log"
+      }
+    ]
+  }
+  
