@@ -1,0 +1,32 @@
+{
+    "schedules": [
+      {
+        "type": "task",
+        "name": "capital update",
+        "func": "sysproduction.update_total_capital.totalCapitalUpdate",
+        "start": "12:45 am pst",
+        "freq": "2 h",
+        "stop": "11:30 pm pst",
+        "log_path": "logs/capital_update.log"
+      },
+
+      {
+        "type": "task",
+        "name": "update sampled contracts",
+        "func": "sysproduction.update_sampled_contracts.updateSampledContracts",
+        "start": "5:00 am pst",
+        "log_path": "logs/update_sampled_contracts.log"
+      },
+
+      {
+        "type": "task",
+        "name": "capital update",
+        "func": "sysproduction.update_total_capital.totalCapitalUpdate",
+        "start": "12:45 am pst",
+        "freq": "2 h",
+        "stop": "11:30 pm pst",
+        "log_path": "logs/capital_update.log"
+      }
+    ]
+  }
+  

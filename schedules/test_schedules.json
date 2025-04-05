@@ -1,0 +1,23 @@
+{
+    "schedules": [
+      {
+        "type": "task",
+        "name": "update strategy allocation",
+        "func": "sysproduction.update_strategy_capital.update_strategy_capital",
+        "start": "12:20 pm pst",
+        "log_path": "logs/capital_update.log"
+
+    },
+
+    {
+      "type": "task",
+      "name": "update total capital",
+      "func": "tasks.update_total_capital_wrapper.update_total_capital_wrapper",
+      "start": "12:11 pm pst",
+      "freq": "1 h",
+      "log_path": "logs/capital_update.log"
+
+    } 
+    ]
+  }
+  

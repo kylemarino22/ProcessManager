@@ -1,0 +1,56 @@
+{
+    "schedules": [
+
+    {
+        "type": "program",
+        "name": "nas monitor",
+        "program_class": "nas_program.NASProgram",
+        "keep_alive": true,
+        "check_alive_freq": "10 m",
+        "max_retries": 10,
+        "output_file": "logs/nas_monitor_output.log",
+        "status_file": "statuses/nas_monitor_status.log"
+    },
+
+    {
+        "type": "program",
+        "name": "tws",
+        "program_class": "tws_program.TWS_Program",
+        "keep_alive": true,
+        "check_alive_freq": "5 m",
+        "max_retries": 10,
+        "output_file": "logs/tws_output.log",
+        "status_file": "statuses/tws_status.log"
+    },
+    {
+        "type": "program",
+        "name": "data server",
+        "program_class": "data_server_program.DataServerProgram",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10,
+        "output_file": "logs/data_server_output.log",
+        "status_file": "statuses/data_server_status.log"
+
+    }, 
+    {
+        "type": "program",
+        "name": "mongo daemon",
+        "program_class": "mongo_program.MongoProgram",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10,
+        "output_file": "logs/mongo_output.log",
+        "status_file": "statuses/mongo_status.log"
+
+    },
+    {
+        "type": "task",
+        "name": "do backups",
+        "func": "tasks.backup_and_reboot.backup",
+        "start": "11:59 pm pst",
+        "log_path": "logs/backups.log"
+    }
+    ]
+  }
+  

@@ -1,0 +1,17 @@
+{
+    "schedules": [
+
+    {
+        "type": "program",
+        "name": "data server",
+        "program_class": "data_server_program.DataServerProgram",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10,
+        "output_file": "logs/data_server_output.log",
+        "status_file": "statuses/data_server_status.log"
+
+    } 
+    ]
+  }
+  

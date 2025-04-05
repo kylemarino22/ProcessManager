@@ -1,2 +1,0 @@
-2025-03-16 11:06:33,564 - Data Server - DEBUG - Starting program
-2025-03-16 11:06:33,564 - Data Server - ERROR - Failed to start program 'Data Server': [Errno 2] No such file or directory: 'path/to/data_server_output.log'

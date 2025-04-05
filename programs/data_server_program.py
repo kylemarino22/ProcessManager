@@ -1,0 +1,79 @@
+# data_server_program.py
+from program_base import BaseProgram
+import subprocess
+import os
+import time
+from multiprocessing.managers import BaseManager
+
+class DataServerProgram(BaseProgram):
+    def __init__(self, config):
+        super().__init__(config)
+        # The status_file is inherited from BaseProgram (config or default).
+        # Override the monitor function with our custom monitor.
+        self.monitor_func = self.custom_monitor
+
+    @BaseProgram.record_start
+    def start(self):
+        """
+        Starts the data server script using a fixed command and returns its PID.
+        """
+        self.status_logger.debug(f"Starting Data Server Program: {self.name}")
+        try:
+            command = (
+                f"source $HOME/.profile; "
+                f"exec /home/kyle/anaconda3/envs/pysystemenv/bin/python "
+                f"/home/kyle/pysystemtrade/kyle_tests/data_engine/data_server_v2.py "
+                f">> {self.output_file} 2>&1"
+            )
+            self.process = subprocess.Popen(
+                ["bash", "-c", command],
+                preexec_fn=os.setsid  # Detach the process from the parent.
+            )
+            self.status_logger.info(f"Started Data Server Program '{self.name}' with PID {self.process.pid}")
+            return self.process.pid
+        except Exception as e:
+            self.status_logger.error(f"Failed to start Data Server Program '{self.name}': {e}")
+            return None
+
+    @BaseProgram.record_stop
+    def stop(self):
+        """
+        Stops the data server process.
+        """
+        self.status_logger.debug(f"Stopping Data Server Program: {self.name}")
+        if self.process:
+            try:
+                self.process.terminate()
+                self.status_logger.info(f"Data Server Program '{self.name}' terminated.")
+            except Exception as e:
+                self.status_logger.error(f"Error stopping Data Server Program '{self.name}': {e}")
+
+    def custom_monitor(self):
+        """
+        Custom monitoring function for the data server.
+        First checks the recorded PID in the status file.
+        Then attempts to connect to the server using a QueueManager.
+        Restarts the server if either check fails.
+        """
+
+
+        # pid_running = self.default_monitor()
+
+        # if not pid_running:
+        #     self.status_logger.info("Data server not running based on status file. Attempting restart.")
+        #     return True
+
+        # Next, test connection to the server using a QueueManager.
+        class QueueManager(BaseManager):
+            pass
+
+        manager = QueueManager(address=('127.0.0.1', 50000), authkey=b'secret')
+        try:
+            manager.connect()
+            self.status_logger.info("Connection to data server succeeded.")
+        except Exception as e:
+            self.status_logger.error(f"[Client] Error connecting to data server: {e}")
+            self.status_logger.info("Attempting restart of data server.")
+            return True
+
+        return False

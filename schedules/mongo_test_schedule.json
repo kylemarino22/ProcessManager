@@ -1,0 +1,16 @@
+{
+    "schedules": [
+        
+        {
+        "type": "program",
+        "name": "mongo daemon",
+        "program_class": "mongo_program.MongoProgram",
+        "keep_alive": true,
+        "check_alive_freq": "1 m",
+        "max_retries": 10,
+        "output_file": "logs/mongo_output.log",
+        "status_file": "statuses/mongo_status.log"
+        }
+    ]
+
+}

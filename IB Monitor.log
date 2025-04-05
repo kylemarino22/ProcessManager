@@ -1,2 +1,0 @@
-2025-03-16 11:06:33,564 - IB Monitor - DEBUG - Starting program
-2025-03-16 11:06:33,564 - IB Monitor - ERROR - Failed to start program 'IB Monitor': [Errno 2] No such file or directory: 'path/to/ib_monitor_output.log'
