@@ -9,8 +9,7 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from logger_setup import setup_process_manager_logger
 from syslogdiag.email_via_db_interface import send_production_mail_msg
-from syslogdiag.emailing import send_mail_msg
-
+from syslogdiag.emailing import send_mail_msg 
 
 class BaseProgram(ABC):
     def __init__(self, config):
@@ -20,6 +19,7 @@ class BaseProgram(ABC):
         self.keep_alive = config.get('keep_alive', False)
         self.check_alive_freq = self.parse_frequency(config.get('check_alive_freq', '1 m'))
         self.max_retries = config.get('max_retries', 0)
+        self.run_on_start = config.get('run_on_start', False)
         self.retries = 0
         self.process = None
 
@@ -34,10 +34,11 @@ class BaseProgram(ABC):
             self.schedule_end = self.parse_time_str(end_str)
 
         # Status file path for recording PID, time started, and num_retries.
-        # Default to statuses/<program_name>.json unless provided in config.
         self.status_file = config.get("status_file", f"statuses/{self.name}.json")
+        
         # Set the default monitor function.
         self.monitor_func = self.default_monitor
+
 
     def parse_frequency(self, freq_str):
         try:
@@ -111,6 +112,7 @@ class BaseProgram(ABC):
         If found, it kills that process.
         After a successful start (i.e. a PID is returned), writes the status JSON
         file with pid, time_started, and num_retries.
+        Also updates shared state if available.
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -121,18 +123,19 @@ class BaseProgram(ABC):
                 try:
                     os.kill(old_pid, 9)  # Force kill the old process.
                     self.status_logger.info(
-                        f"Killed existing process with PID {old_pid} before starting new process."
+                        f"Program {self.name} killed existing process with PID {old_pid} before starting new process."
                     )
                 except Exception as e:
                     self.status_logger.error(
-                        f"Error killing existing process with PID {old_pid}: {e}"
+                        f"Error killing process {old_pid} for program {self.name}: {e}"
                     )
             pid = func(self, *args, **kwargs)
             if pid:
                 new_status = {
                     "pid": pid,
                     "time_started": datetime.now().isoformat(),
-                    "num_retries": self.retries
+                    "num_retries": self.retries,
+                    "status": "running"
                 }
                 self.write_status(new_status)
             return pid
@@ -142,7 +145,8 @@ class BaseProgram(ABC):
     def record_stop(func):
         """
         Decorator for stop() methods.
-        After stopping, update the status JSON file to set pid to 0.
+        After stopping, update the status JSON file to set pid to 0 and status to 'stopped'.
+        Also updates shared state if available.
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -150,7 +154,8 @@ class BaseProgram(ABC):
             status = {
                 "pid": 0,
                 "time_started": None,
-                "num_retries": self.retries
+                "num_retries": self.retries,
+                "status": "stopped"
             }
             self.write_status(status)
             return result
@@ -181,10 +186,23 @@ class BaseProgram(ABC):
         If keep_alive is False, the monitor loop ends.
         """
         while True:
+            # Read the current status from the status file.
+            current_status = self.read_status() or {}
+            
+            # Check for disable flag before proceeding.
+            if current_status.get("disable_restart", False):
+                self.status_logger.info(f"Program '{self.name}' is disabled. Skipping monitor loop.")
+                time.sleep(self.check_alive_freq)
+                continue
+
+            current_status["last_checkup"] = datetime.now().isoformat()
+            self.write_status(current_status)
+
             if not self.within_schedule():
                 if self.process and self.process.poll() is None:
                     self.status_logger.info(f"Program '{self.name}' is outside its scheduled time. Stopping.")
                     self.stop()
+                time.sleep(self.check_alive_freq)
                 continue
 
             if self.monitor_func():
@@ -219,9 +237,9 @@ class BaseProgram(ABC):
 
     def notify_failure(self, additional_info=""):
         """
-        Notifies urgently via email that the script has failed more than 10 times.
+        Notifies urgently via email that the script has failed more than allowed times.
         """
-        subject = f"URGENT: Script {self.name} failed more than 10 times"
+        subject = f"URGENT: Script {self.name} failed more than allowed times"
         body = f"The script '{self.name}' has failed {self.retries} times as of {datetime.now().isoformat()}.\nImmediate action is required."
         if additional_info:
             body += f"\nAdditional Info: {additional_info}"

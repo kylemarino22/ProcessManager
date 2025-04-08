@@ -1,5 +1,16 @@
 {
     "schedules": [
+
+        {
+            "type": "program",
+            "name": "nas monitor",
+            "program_class": "nas_program.NASProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 10,
+            "output_file": "logs/nas_monitor_output.log",
+            "status_file": "statuses/nas_monitor_status.log"
+        },
         
         {
         "type": "program",

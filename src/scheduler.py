@@ -60,6 +60,7 @@ class Scheduler:
                         # Ensure the loaded class extends BaseProgram.
                         assert issubclass(cls, BaseProgram), f"{class_name} must extend BaseProgram"
                         self.programs.append(cls(job))
+
                     except Exception as e:
                         self.logger.error(f"Error loading program class '{program_class_path}': {e}")
                         self.logger.error(traceback.format_exc())
@@ -94,7 +95,21 @@ class Scheduler:
 
     def run(self):
         self.logger.info("Scheduler starting")
+
         self.initialize()
+
+        # Start all programs.
+        for prog in self.programs:
+            try:
+                if prog.run_on_start and prog.within_schedule():
+                    self.logger.info(f"Starting program '{prog.name}' on startup")
+                    prog.start()
+
+            except Exception as e:
+                self.logger.error(f"Error starting program '{prog.name}': {e}")
+                self.logger.error(traceback.format_exc())
+
+
         # Instead of blindly starting all programs, spawn a monitor thread for each.
         for prog in self.programs:
             threading.Thread(target=prog.monitor, daemon=True).start()

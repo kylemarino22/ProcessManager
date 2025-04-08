@@ -21,8 +21,8 @@ def check_ib_valid_time():
     Check if the current time is outside the valid IB operating window.
     Returns True if the current time is before the start time or after the end time.
     """
-    start_time = datetime.strptime("20:20", "%H:%M").time()  # 20:20
-    end_time = datetime.strptime("21:45", "%H:%M").time()    # 21:45
+    start_time = datetime.strptime("20:30", "%H:%M").time()  # 20:20
+    end_time = datetime.strptime("21:30", "%H:%M").time()    # 21:45
     current_time = datetime.now().time()
     return start_time >= current_time or current_time >= end_time
 

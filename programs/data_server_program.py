@@ -4,6 +4,7 @@ import subprocess
 import os
 import time
 from multiprocessing.managers import BaseManager
+import signal
 
 class DataServerProgram(BaseProgram):
     def __init__(self, config):
@@ -38,15 +39,26 @@ class DataServerProgram(BaseProgram):
     @BaseProgram.record_stop
     def stop(self):
         """
-        Stops the data server process.
+        Stops the data server process gracefully by sending SIGINT (simulating Ctrl+C)
+        to the entire process group.
         """
         self.status_logger.debug(f"Stopping Data Server Program: {self.name}")
-        if self.process:
+
+        if self.default_monitor():
+
+            pid = self.read_status().get('pid')
             try:
-                self.process.terminate()
-                self.status_logger.info(f"Data Server Program '{self.name}' terminated.")
+                # Send SIGINT to the process group to simulate a Ctrl+C
+                os.killpg(os.getpgid(pid), signal.SIGINT)
+                # Optionally, wait for the process to exit gracefully
+                self.status_logger.info(f"Waiting for Data Server Program to terminate...")
+                time.sleep(60)
+                self.status_logger.info(f"Data Server Program terminated gracefully with SIGINT.")
             except Exception as e:
-                self.status_logger.error(f"Error stopping Data Server Program '{self.name}': {e}")
+                self.status_logger.error(f"Error stopping Data Server Program '{self.name}', pid: {pid}: {e}")
+
+        else:
+            self.status_logger.warning(f"Data Server Program '{self.name}' was not running.")
 
     def custom_monitor(self):
         """

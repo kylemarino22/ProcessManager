@@ -4,6 +4,7 @@ import subprocess
 import os
 from sysdata.data_blob import dataBlob  # Assumes dataBlob provides a mongo_db() method
 from pymongo import MongoClient, errors
+import shutil
 
 class MongoProgram(BaseProgram):
     def __init__(self, config):
@@ -19,10 +20,17 @@ class MongoProgram(BaseProgram):
         bash -c "source $HOME/.profile; mongod --dbpath $MONGO_DATA"
         Returns the spawned process's PID.
         """
-        self.status_logger.debug(f"Starting Mongo Program: {self.name}")
+        mongo_data = "/home/kyle/data/mongodb/"
+        mongod_path = shutil.which("mongod") or "/usr/bin/mongod"  # Adjust if needed
+
+        cmd = f"{mongod_path} --dbpath \"{mongo_data}\""
+        self.status_logger.debug(f"Launching Mongo with command: {cmd}")
+
         try:
             self.process = subprocess.Popen(
-                ["bash", "-c", "source $HOME/.profile && nohup mongod --dbpath \"$MONGO_DATA\" >> \"$HOME/mongod.log\" 2>&1 &"],
+                ["bash", "-c", cmd],
+                stdout=open(self.output_file, "a"),
+                stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
             self.status_logger.info(f"Started Mongo Program '{self.name}' with PID {self.process.pid}")

@@ -29,12 +29,12 @@ class TWS_Program(BaseProgram):
         list_and_kill_process("ibcstart.sh")
         list_and_kill_process("xterm")
         try:
+            command = f"nohup /opt/ibc/twsstart.sh >> {self.output_file} 2>&1 &"
             self.process = subprocess.Popen(
-                ["bash", "-c", "nohup /opt/ibc/twsstart.sh >> /home/kyle/echos/IBC_log.txt 2>&1 &"],
+                ["bash", "-c", command],
                 preexec_fn=os.setsid
             )
             self.status_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
-
         except Exception as e:
             self.status_logger.error(f"Failed to start TWS program '{self.name}': {e}")
 
@@ -76,59 +76,23 @@ class TWS_Program(BaseProgram):
         #     print("Process not running, restarting...")
         #     return True
 
-        print("asdfasdf")
-
         # If IB operating hours are not valid, stop the process.
         if not check_ib_valid_time():
             # self.stop()
-            print("Outside IB operating hours, stopping process.")
-            return True  # Signal that a restart is needed when valid time resumes.
+            self.status_logger.info("[TWS monitor] Outside IB operating hours, stopping process.")
+            return False  # Signal that a restart is needed when valid time resumes.
 
-        # Wait briefly before further checking.
-        # time.sleep(20)
-
-        ib_online = True
-        total_account_value_in_base_currency = None
         try:
             self.data = dataBlob()
             broker_data = dataBroker(self.data)
-            total_account_value_in_base_currency = broker_data.get_total_capital_value_in_base_currency()
+            _ = broker_data.get_total_capital_value_in_base_currency()
 
             # Disconnect IB here
             self.data.close()
+            
+            return False # No restart needed.
+
         except Exception as e:
-            self.status_logger.error(f"Error fetching broker data: {e}")
-            ib_online = False
+            self.status_logger.error(f"[TWS monitor] Error fetching broker data: {e}")
 
-        datetime_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        status_file_path = self.status_file
-        status = {}
-        if os.path.exists(status_file_path):
-            try:
-                with open(status_file_path, "r") as file:
-                    status = json.load(file)
-            except Exception:
-                status = {}
-
-        failed_logins = status.get('failed_logins', 0)
-        if not ib_online:
-            failed_logins += 1
-            self.status_logger.info("Retrying IB login")
-            # self.start()  # Attempt a restart.
             return True
-        else:
-            failed_logins = 0
-
-        status = {
-            'ib_online': ib_online,
-            'account_value': total_account_value_in_base_currency,
-            'last_updated': datetime_string,
-            'failed_logins': failed_logins
-        }
-        try:
-            with open(status_file_path, "w") as file:
-                file.write(json.dumps(status))
-        except Exception as e:
-            self.status_logger.error(f"Error writing IB status: {e}")
-
-        return False
