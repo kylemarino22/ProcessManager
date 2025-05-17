@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from abc import ABC, abstractmethod
 from functools import wraps
-from logger_setup import setup_process_manager_logger
+from .logger_setup import setup_process_manager_logger
 from syslogdiag.email_via_db_interface import send_production_mail_msg
 from syslogdiag.emailing import send_mail_msg 
 

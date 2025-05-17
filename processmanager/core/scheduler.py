@@ -2,53 +2,33 @@
 import json
 import time
 import importlib
-from logger_setup import setup_process_manager_logger
-from program_base import BaseProgram
-from task import Task  # assuming Task is defined elsewhere
+from .logger_setup import setup_process_manager_logger
+from .program_base import BaseProgram
+from .task import Task
+from .utils import load_schedules
 from datetime import datetime
 import os
 import sys
 import threading
 import traceback
-
-programs_dir = os.path.join(os.path.dirname(__file__), "../programs")
-if programs_dir not in sys.path:
-    sys.path.insert(0, programs_dir)
+import hashlib
 
 class Scheduler:
     instance = None  # Global reference
 
-    def __init__(self, schedules_file='schedules.json', statuses_file='statuses.json'):
+    def __init__(self, schedules_file):
         self.logger = setup_process_manager_logger()
         self.schedules_file = schedules_file
-        self.statuses_file = statuses_file
+        # self.statuses_file = statuses_file
         self.programs = []
         self.tasks = []
         self.unsorted_task_queue = []
         self.sorted_task_queue = []
         self.task_dict = {}
 
-    def load_schedules(self):
-        self.logger.debug("Loading schedules")
-        try:
-            with open(self.schedules_file, 'r') as f:
-                data = json.load(f)
-                return data.get('schedules', [])
-        except Exception as e:
-            self.logger.error(f"Error loading schedules: {e}")
-            return []
-
-    def load_statuses(self):
-        self.logger.debug("Loading statuses")
-        try:
-            with open(self.statuses_file, 'r') as f:
-                return json.load(f)
-        except Exception as e:
-            self.logger.error(f"Error loading statuses: {e}")
-            return {}
 
     def initialize(self):
-        schedules = self.load_schedules()
+        schedules, valid_hash = load_schedules(self.schedules_file, write_hash=True)
         for job in schedules:
             if job.get('type') == 'program':
                 program_class_path = job.get('program_class')
@@ -67,7 +47,6 @@ class Scheduler:
                 else:
                     self.logger.error("No 'program_class' specified for a program job")
             elif job.get('type') == 'task':
-                from task import Task  # if not already imported
                 task = Task(job)
                 self.tasks.append(task)
                 self.unsorted_task_queue.append(task)

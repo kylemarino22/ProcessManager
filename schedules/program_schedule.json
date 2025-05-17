@@ -18,7 +18,7 @@
         "program_class": "tws_program.TWS_Program",
         "keep_alive": true,
         "check_alive_freq": "5 m",
-        "max_retries": 10,
+        "max_retries": 99999999999999999999,
         "output_file": "logs/tws_output.log",
         "status_file": "statuses/tws_status.log"
     },

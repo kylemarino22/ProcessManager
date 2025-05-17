@@ -1,8 +1,8 @@
 # tws_program.py
-from program_base import BaseProgram
+from ..core.program_base import BaseProgram
 from sysdata.data_blob import dataBlob
 from sysproduction.data.broker import dataBroker
-from utils import check_ib_valid_time, list_and_kill_process
+from ..core.utils import check_ib_valid_time, list_and_kill_process
 from datetime import datetime
 import json
 import os
@@ -61,6 +61,8 @@ class TWS_Program(BaseProgram):
         Returns True if the program should be restarted.
         """
 
+        # This is needed to attach ib to event loop
+
         import asyncio
         # Create or get an event loop for the current thread
         try:
@@ -68,6 +70,7 @@ class TWS_Program(BaseProgram):
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+
         # First, check the basic process status.
         # TWS is started with a script which opens an xterm window, so we expect the actual process
         # to be "xterm" and not the script name.

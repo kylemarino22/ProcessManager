@@ -1,5 +1,5 @@
 # mongo_program.py
-from program_base import BaseProgram
+from ..core.program_base import BaseProgram
 import subprocess
 import os
 from sysdata.data_blob import dataBlob  # Assumes dataBlob provides a mongo_db() method

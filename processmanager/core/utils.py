@@ -1,11 +1,65 @@
 import importlib
 from datetime import datetime
 import subprocess
+import json
+import hashlib
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def load_json(filename):
-    import json
     with open(filename, 'r') as f:
         return json.load(f)
+
+        
+def load_schedules(filename, write_hash=False):
+    """Load schedules, validate or write a hash, and return (schedules, valid_hash)."""
+    # logger.debug("Loading schedules")
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading schedules: {e}")
+        return [], False
+
+    schedules = data.get('schedules', [])
+
+    # 1. Serialize in a stable way
+    canonical = json.dumps(schedules, sort_keys=True, separators=(',', ':'))
+
+    # 2. Compute SHA-256 hash
+    digest = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+
+    # 3. Determine hash file path
+    base, _ext = os.path.splitext(os.path.basename(filename))
+    hash_filename = f"{base}.hash"
+    hash_path = os.path.join(os.path.dirname(filename), hash_filename)
+
+    # 4. Read existing hash (if any) and compare
+    old_digest = None
+    if os.path.exists(hash_path):
+        try:
+            with open(hash_path, 'r') as hf:
+                old_digest = hf.read().strip()
+        except Exception as e:
+            logger.warning(f"Could not read existing hash file: {e}")
+
+    valid_hash = (old_digest == digest) if old_digest is not None else False
+
+    # 5. Optionally write out the new hash
+    if write_hash:
+        try:
+            with open(hash_path, 'w') as hf:
+                hf.write(digest)
+            logger.debug(f"Wrote schedules hash to {hash_path}")
+        except Exception as e:
+            logger.error(f"Error writing hash file: {e}")
+
+    return schedules, valid_hash
+    
+    
     
 def dynamic_import(func_path):
     """

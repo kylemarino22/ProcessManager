@@ -4,8 +4,8 @@ import io
 import contextlib
 import math
 from datetime import datetime, timedelta
-from logger_setup import setup_process_manager_logger
-from utils import dynamic_import
+from .logger_setup import setup_process_manager_logger
+from .utils import dynamic_import
 
 class Task:
     def __init__(self, config):

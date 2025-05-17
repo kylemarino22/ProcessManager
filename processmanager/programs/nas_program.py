@@ -1,5 +1,5 @@
 # nas_program.py
-from program_base import BaseProgram
+from ..core.program_base import BaseProgram
 import subprocess
 import os
 

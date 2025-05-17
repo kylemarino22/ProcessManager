@@ -4,7 +4,7 @@
     {
         "type": "program",
         "name": "nas monitor",
-        "program_class": "nas_program.NASProgram",
+        "program_class": "processmanager.programs.nas_program.NASProgram",
         "keep_alive": true,
         "check_alive_freq": "10 m",
         "max_retries": 10,
@@ -15,17 +15,17 @@
     {
         "type": "program",
         "name": "tws",
-        "program_class": "tws_program.TWS_Program",
+        "program_class": "processmanager.programs.tws_program.TWS_Program",
         "keep_alive": true,
         "check_alive_freq": "5 m",
-        "max_retries": 10,
+        "max_retries": 9999999,
         "output_file": "logs/tws_output.log",
         "status_file": "statuses/tws_status.log"
     },
     {
         "type": "program",
         "name": "data server",
-        "program_class": "data_server_program.DataServerProgram",
+        "program_class": "processmanager.programs.data_server_program.DataServerProgram",
         "keep_alive": true,
         "check_alive_freq": "1 m",
         "max_retries": 10,
@@ -36,7 +36,7 @@
     {
         "type": "program",
         "name": "mongo daemon",
-        "program_class": "mongo_program.MongoProgram",
+        "program_class": "processmanager.programs.mongo_program.MongoProgram",
         "keep_alive": true,
         "check_alive_freq": "1 m",
         "max_retries": 10,
