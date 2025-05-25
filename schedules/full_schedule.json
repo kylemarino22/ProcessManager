@@ -3,55 +3,42 @@
 
     {
         "type": "program",
-        "name": "nas monitor",
+        "name": "nas-monitor",
         "program_class": "processmanager.programs.nas_program.NASProgram",
         "keep_alive": true,
         "check_alive_freq": "10 m",
-        "max_retries": 10,
-        "output_file": "logs/nas_monitor_output.log",
-        "status_file": "statuses/nas_monitor_status.log"
+        "max_retries": 10
     },
-
     {
         "type": "program",
         "name": "tws",
         "program_class": "processmanager.programs.tws_program.TWS_Program",
         "keep_alive": true,
         "check_alive_freq": "5 m",
-        "max_retries": 9999999,
-        "output_file": "logs/tws_output.log",
-        "status_file": "statuses/tws_status.log"
+        "max_retries": 9999999
     },
     {
         "type": "program",
-        "name": "data server",
+        "name": "data-server",
         "program_class": "processmanager.programs.data_server_program.DataServerProgram",
         "keep_alive": true,
         "check_alive_freq": "1 m",
-        "max_retries": 10,
-        "output_file": "logs/data_server_output.log",
-        "status_file": "statuses/data_server_status.log"
-
+        "max_retries": 10
     }, 
     {
         "type": "program",
-        "name": "mongo daemon",
+        "name": "mongo-daemon",
         "program_class": "processmanager.programs.mongo_program.MongoProgram",
         "keep_alive": true,
         "check_alive_freq": "1 m",
-        "max_retries": 10,
-        "output_file": "logs/mongo_output.log",
-        "status_file": "statuses/mongo_status.log"
-
+        "max_retries": 10
     },
 
     {
         "type": "task",
-        "name": "update strategy allocation",
+        "name": "update-strategy-allocation",
         "func": "sysproduction.update_strategy_capital.update_strategy_capital",
-        "start": "00:45 am pst",
-        "log_path": "logs/capital_update.log"
-
+        "start": "00:45 am pst"
     },
 
     {
@@ -59,17 +46,14 @@
       "name": "update total capital",
       "func": "tasks.update_total_capital_wrapper.update_total_capital_wrapper",
       "start": "00:45 am pst",
-      "freq": "1 h",
-      "log_path": "logs/capital_update.log"
-
+      "freq": "1 h"
     },
 
     {
         "type": "task",
         "name": "do backups",
         "func": "tasks.backup_and_reboot.backup",
-        "start": "11:59 pm pst",
-        "log_path": "logs/backups.log"
+        "start": "11:59 pm pst"
     }
     ]
   }

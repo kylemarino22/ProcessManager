@@ -9,8 +9,8 @@ import logging
 from pathlib import Path
 from tabulate import tabulate
 from processmanager.core.utils import load_schedules
-from .main import SCHEDULE_FILE_PATH
 from .core.supervisor_manager import reload_supervisor
+from .config import Config, config # Import class def and object
 
 # Early disable asyncio logging.
 asyncio_logger = logging.getLogger('asyncio')
@@ -18,99 +18,118 @@ asyncio_logger.setLevel(logging.CRITICAL)
 asyncio_logger.disabled = True
 
 
-def list_status(schedule_filename):
-    """Lists the status of configured programs and tasks in a neat, grouped table."""
-    schedules, valid_hash = load_schedules(schedule_filename)
+def list_status(config: Config):
+    """Lists the status of configured programs and tasks in three separate tables."""
+    schedules, valid_hash = load_schedules(config.schedule_file)
 
-    
-    print(f"\nSchedule Valid: {valid_hash}")
+    # ── 1) Schedule Valid table ───────────────────────────────────────────────
+    field_table = [["Schedule Valid", str(valid_hash)]]
+    print(tabulate(field_table,
+                   tablefmt="rounded_outline"))
+    print()  # blank line between tables
+
+    # ── 2) Programs table ────────────────────────────────────────────────────
+    prog_rows = []
+    for schedule in schedules:
+        
+        if schedule.get("type") != "program":
+            continue
+
+        name       = schedule.get("name", "")
+        class_path = schedule.get("program_class", "")
+        start_time = None
+        last_checkup = None
+        disable_restart = None
+
+        if not class_path:
+            status = "No program_class provided"
+            short_path = ""
+
+        else:
+            try:
+                # split into full module path + class
+                mod_name, cls_name = class_path.rsplit(".", 1)
+
+                # derive the "short" module (last segment) + class
+                short_mod = mod_name.split(".")[-1]
+                short_path = f"{short_mod}.{cls_name}"
+
+                # import & monitor as before
+                module = importlib.import_module(mod_name)
+                cls    = getattr(module, cls_name)
+                prog   = cls(schedule, config)
+
+                print(type(prog), prog)
+
+                # Run monitor func for program to check status
+                if hasattr(prog, "custom_monitor"):
+                    # silence all output
+                    logging.disable(logging.CRITICAL + 1)
+
+                    # with open(os.devnull, "w") as devnull, \
+                    #     contextlib.redirect_stdout(devnul):
+
+                    is_stopped = prog.custom_monitor()
+
+                    logging.disable(logging.NOTSET)
+                    program_status = "stopped" if is_stopped else "running"
+                else:
+                    program_status = "unknown (no custom_monitor)"
+                
+
+                print("1")
+                status_dict = prog.read_status() 
+            
+                print("@")
+
+                start_time = status_dict['time_started']
+                last_checkup = status_dict['last_checkup']
+                disable_restart = status_dict['disable_restart']
+
+                print("asdf")
+
+            except Exception as e:
+                print(f"Error: {e}")
+
+        # Load in status dict
+        prog_rows.append([name, short_path, program_status, 
+                          start_time, last_checkup, disable_restart])
+
+    print(tabulate(prog_rows,
+                   headers=["Name", "Class Path", "Status", "Started", "Last Checkup", "Auto Restart"],
+                   tablefmt="rounded_outline"))
+    print()
+
+    # ── 3) Tasks table ───────────────────────────────────────────────────────
+    task_rows = []
+    for schedule in schedules:
+        if schedule.get("type") != "task":
+            continue
+        name         = schedule.get("name", "")
+        func_path    = schedule.get("function_path", "")  # or whatever key you use
+        task_rows.append([name, func_path, "", "", ""])
+
+    print(tabulate(task_rows,
+                   headers=["Name", "Function Path", "Freq", "Last Ran", "Last Err"],
+                   tablefmt="rounded_outline"))
 
 
-    # 1️⃣ Collect program- and task-rows separately
-    program_rows = []
-    task_rows    = []
-
-    for job in schedules:
-        typ        = job.get("type")
-        name       = job.get("name", "")
-        class_path = job.get("program_class", "") if typ == "program" else ""
-        status     = ""
-
-        if typ == "program":
-            if not class_path:
-                status = "No program_class provided"
-            else:
-                try:
-                    mod_name, cls_name = class_path.rsplit(".", 1)
-                    module = importlib.import_module(mod_name)
-                    cls    = getattr(module, cls_name)
-                    inst   = cls(job)
-
-                    if hasattr(inst, "custom_monitor"):
-                        logging.disable(logging.CRITICAL + 1)
-                        with open(os.devnull, "w") as devnull, \
-                             contextlib.redirect_stdout(devnull), \
-                             contextlib.redirect_stderr(devnull):
-                            is_stopped = inst.custom_monitor()
-                        logging.disable(logging.NOTSET)
-                        status = "stopped" if is_stopped else "running"
-                    else:
-                        status = "unknown (no custom_monitor)"
-                except Exception as e:
-                    status = f"ERROR: {e}"
-            program_rows.append([name, class_path, status])
-
-        elif typ == "task":
-            status = "(task status N/A)"
-            # leave class_path blank for tasks
-            task_rows.append([name, "", status])
-
-    # 2️⃣ Define headers
-    headers = ["Name", "Class Path", "Status"]
-
-    # 3️⃣ Compute column widths for our separator
-    #    We need the max width of each column across all rows + headers
-    all_rows = program_rows + task_rows
-    col_widths = []
-    for col_idx in range(len(headers)):
-        max_w = len(headers[col_idx])
-        for row in all_rows:
-            max_w = max(max_w, len(row[col_idx]))
-        col_widths.append(max_w)
-
-    # 4️⃣ Build a “separator” row of box-drawing dashes
-    sep_row = ["─" * w for w in col_widths]
-
-    # 5️⃣ Stitch everything together
-    combined = []
-    if program_rows:
-        combined.extend(program_rows)
-    # insert separator only if both groups exist
-    if program_rows and task_rows:
-        combined.append(sep_row)
-    if task_rows:
-        combined.extend(task_rows)
-
-    # 6️⃣ Print via tabulate
-    print(tabulate(combined, headers=headers, tablefmt="rounded_outline"))
-
-
-def stop_program(program_name, schedule_filename):
+def stop_program(program_name, config: Config):
     """
     Finds the schedule for a given program, instantiates its class,
     calls its stop() method, and updates its status file to set disable_restart = True.
     """
-    schedules, valid_hash = load_schedules(schedule_filename)
-    program_config = None
-    for job in schedules:
-        if job.get("type") == "program" and job.get("name") == program_name:
-            program_config = job
+    schedules, valid_hash = load_schedules(config.schedule_file)
+    prog_sched = None
+    for schedule in schedules:
+        if schedule.get("type") == "program" and schedule.get("name") == program_name:
+            prog_sched = schedule 
             break
-    if not program_config:
+    if not prog_sched:
         print(f"No schedule found for program '{program_name}'")
         return
 
-    class_path = program_config.get("program_class")
+    class_path = prog_sched.get("program_class")
     if not class_path:
         print(f"No program_class provided for '{program_name}'")
         return
@@ -120,47 +139,34 @@ def stop_program(program_name, schedule_filename):
         module = importlib.import_module(module_name)
         cls = getattr(module, class_name)
         # Instantiate the program using its config.
-        program_instance = cls(program_config)
-        # Call its stop() method.
-        # (This assumes the stop() method will kill the running process
-        #  by reading the stored PID from its status file.)
+        prog = cls(prog_sched, config)
 
-        # logging.disable(logging.CRITICAL + 1)
-        # with open(os.devnull, "w") as devnull:
-        #     with contextlib.redirect_stdout(devnull), contextlib.redirect_stderr(devnull):
-        stop_result = program_instance.stop()
-        # logging.disable(logging.NOTSET)
+        prog.stop()
 
-        # Update the status file to include disable_restart.
-        status_file = program_config.get("status_file", f"statuses/{program_name}.json")
-        if os.path.exists(status_file):
-            with open(status_file, "r") as f:
-                status_data = json.load(f)
-        else:
-            status_data = {}
-        status_data["disable_restart"] = True
-        with open(status_file, "w") as f:
-            json.dump(status_data, f)
+        prog.set_disable_restart(True)
+
         print(f"Program '{program_name}' stopped and disable_restart set to True.")
     except Exception as e:
         print(f"Error stopping program '{program_name}': {e}")
 
-def start_program(program_name, schedule_filename):
+def start_program(program_name, config: Config):
     """
     Finds the schedule for a given program, instantiates its class,
     calls its start() method, and updates its status file to set disable_restart = False.
     """
-    schedules, valid_hash = load_schedules(schedule_filename)
-    program_config = None
-    for job in schedules:
-        if job.get("type") == "program" and job.get("name") == program_name:
-            program_config = job
+
+    schedules, _ = load_schedules(config.schedule_file)
+    prog_sched = None
+    for schedule in schedules:
+        if schedule.get("type") == "program" and schedule.get("name") == program_name:
+            prog_sched = schedule 
             break
-    if not program_config:
+
+    if not prog_sched:
         print(f"No schedule found for program '{program_name}'")
         return
 
-    class_path = program_config.get("program_class")
+    class_path = prog_sched.get("program_class")
     if not class_path:
         print(f"No program_class provided for '{program_name}'")
         return
@@ -169,21 +175,14 @@ def start_program(program_name, schedule_filename):
         module_name, class_name = class_path.rsplit(".", 1)
         module = importlib.import_module(module_name)
         cls = getattr(module, class_name)
-        # Instantiate the program using its config.
-        program_instance = cls(program_config)
-        # Call its start() method.
-        start_result = program_instance.start()
-        # Update the status file to include disable_restart set to False.
-        status_file = program_config.get("status_file", f"statuses/{program_name}.json")
-        if os.path.exists(status_file):
-            with open(status_file, "r") as f:
-                status_data = json.load(f)
-        else:
-            status_data = {}
-        status_data["disable_restart"] = False
-        with open(status_file, "w") as f:
-            json.dump(status_data, f)
-        print(f"Program '{program_name}' started and disable_restart set to False.")
+        prog = cls(prog_sched, config)
+
+        # Call program start, discard result
+        prog.start()
+
+        prog.disable_restart(False)
+
+        print(f"Program '{program_name}' started and disable restart set to False.")
     except Exception as e:
         print(f"Error starting program '{program_name}': {e}")
         
@@ -200,21 +199,21 @@ def main():
     args = parser.parse_args()
 
     if args.command == "list":
-        list_status(SCHEDULE_FILE_PATH)
+        list_status(config)
 
     elif args.command == "stop":
         if args.program_name is None:
             print("Error: Please specify a program name to stop.") # Changed print to include Error
 
         else:
-            stop_program(args.program_name, SCHEDULE_FILE_PATH)
+            stop_program(args.program_name, config)
 
     elif args.command == "start":
         if args.program_name is None:
             print("Error: Please specify a program name to start.") # Changed print to include Error
 
         else:
-            start_program(args.program_name, SCHEDULE_FILE_PATH)
+            start_program(args.program_name, config)
 
     elif args.command == "reload":
         reload_supervisor()

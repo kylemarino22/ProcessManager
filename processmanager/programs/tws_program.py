@@ -9,10 +9,11 @@ import os
 import subprocess
 import time
 import threading
+from ..config import Config
 
 class TWS_Program(BaseProgram):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, schedule, config: Config):
+        super().__init__(schedule, config)
         # Override the monitor function with a custom one.
         self.monitor_func = self.custom_monitor
 
@@ -21,38 +22,38 @@ class TWS_Program(BaseProgram):
         Starts the TWS program using a predefined command.
         Only starts if within both the schedule (if provided) and valid IB operating hours.
         """
-        self.status_logger.debug(f"Starting TWS program: {self.name}")
+        self.pm_logger.debug(f"Starting TWS program: {self.name}")
         if not check_ib_valid_time():
-            self.status_logger.info("Current time is not valid for starting TWS.")
+            self.pm_logger.info("Current time is not valid for starting TWS.")
             return
         # Kill any existing IB-related processes.
         list_and_kill_process("ibcstart.sh")
         list_and_kill_process("xterm")
         try:
-            command = f"nohup /opt/ibc/twsstart.sh >> {self.output_file} 2>&1 &"
+            command = f"nohup /opt/ibc/twsstart.sh >> {self.log_file} 2>&1 &"
             self.process = subprocess.Popen(
                 ["bash", "-c", command],
                 preexec_fn=os.setsid
             )
-            self.status_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
+            self.pm_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
         except Exception as e:
-            self.status_logger.error(f"Failed to start TWS program '{self.name}': {e}")
+            self.pm_logger.error(f"Failed to start TWS program '{self.name}': {e}")
 
 
     def stop(self):
         """
         Stops the TWS program.
         """
-        self.status_logger.debug(f"Stopping TWS program: {self.name}")
+        self.pm_logger.debug(f"Stopping TWS program: {self.name}")
         if self.process:
             try:
                 self.process.terminate()
                 list_and_kill_process("ibcstart.sh")
                 list_and_kill_process("xterm")
                 
-                self.status_logger.info(f"TWS program '{self.name}' terminated.")
+                self.pm_logger.info(f"TWS program '{self.name}' terminated.")
             except Exception as e:
-                self.status_logger.error(f"Error stopping TWS program '{self.name}': {e}")
+                self.pm_logger.error(f"Error stopping TWS program '{self.name}': {e}")
 
     def custom_monitor(self):
         """
@@ -82,7 +83,7 @@ class TWS_Program(BaseProgram):
         # If IB operating hours are not valid, stop the process.
         if not check_ib_valid_time():
             # self.stop()
-            self.status_logger.info("[TWS monitor] Outside IB operating hours, stopping process.")
+            self.pm_logger.info("[TWS monitor] Outside IB operating hours, stopping process.")
             return False  # Signal that a restart is needed when valid time resumes.
 
         try:
@@ -96,6 +97,6 @@ class TWS_Program(BaseProgram):
             return False # No restart needed.
 
         except Exception as e:
-            self.status_logger.error(f"[TWS monitor] Error fetching broker data: {e}")
+            self.pm_logger.error(f"[TWS monitor] Error fetching broker data: {e}")
 
             return True

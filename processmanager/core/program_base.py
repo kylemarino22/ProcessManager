@@ -4,40 +4,57 @@ import threading
 import time
 import os
 import json
+import logging
+
 from datetime import datetime
 from abc import ABC, abstractmethod
 from functools import wraps
-from .logger_setup import setup_process_manager_logger
+from .logger_setup import setup_logger 
 from syslogdiag.email_via_db_interface import send_production_mail_msg
 from syslogdiag.emailing import send_mail_msg 
+from ..config import Config
 
 class BaseProgram(ABC):
-    def __init__(self, config):
-        self.name = config.get('name')
-        self.status_logger = setup_process_manager_logger()
-        self.output_file = config.get('output_file', f"{self.name}_output.log")
-        self.keep_alive = config.get('keep_alive', False)
-        self.check_alive_freq = self.parse_frequency(config.get('check_alive_freq', '1 m'))
-        self.max_retries = config.get('max_retries', 0)
-        self.run_on_start = config.get('run_on_start', False)
-        self.retries = 0
-        self.process = None
+    
+    def __init__(self, schedule, config: Config):
+
+        """
+        Program base which handles schedule parsing, status updates,
+        and logging. Status and logging dirs are set globally in the 
+        config object.
+        """ 
+
+        # Store config in case it's needed somewhere later
+        self.config = config
+        
+        # Parse info from schedule
+        self.name = schedule.get('name')
+        self.keep_alive = schedule.get('keep_alive', False)
+        self.check_alive_freq = self.parse_frequency(schedule.get('check_alive_freq', '1 m'))
+        self.max_retries = schedule.get('max_retries', 0)
+        self.run_on_start = schedule.get('run_on_start', False)
 
         # Optional schedule times for programs.
-        self.schedule_start = None
-        self.schedule_end = None
-        start_str = config.get('start_time') or config.get('start')
-        end_str = config.get('end_time') or config.get('end')
-        if start_str:
-            self.schedule_start = self.parse_time_str(start_str)
-        if end_str:
-            self.schedule_end = self.parse_time_str(end_str)
+        start_str = schedule.get('start_time') or schedule.get('start')
+        end_str = schedule.get('end_time') or schedule.get('end')
+
+        self.schedule_start = self.parse_time_str(start_str) if start_str else None
+        self.schedule_end = self.parse_time_str(end_str) if end_str else None
 
         # Status file path for recording PID, time started, and num_retries.
-        self.status_file = config.get("status_file", f"statuses/{self.name}.json")
+        self.status_file = f"{config.status_dir}/{self.name}.json"
         
+        # Set for global logging of program start/stop messages
+        self.pm_logger = setup_logger("process_manager.log", config.log_dir)
+
+        # Output file for program
+        self.prog_logger = setup_logger(self.name, config.log_dir, level=logging.INFO)
+
         # Set the default monitor function.
         self.monitor_func = self.default_monitor
+
+        self.retries = 0
+        self.process = None
 
 
     def parse_frequency(self, freq_str):
@@ -51,7 +68,7 @@ class BaseProgram(ABC):
             elif unit.lower().startswith('h'):
                 return value * 3600
         except Exception as e:
-            self.status_logger.error(f"Error parsing frequency '{freq_str}': {e}")
+            self.prog_logger.error(f"Error parsing frequency '{freq_str}': {e}")
         return 60  # default interval
 
     def parse_time_str(self, time_str):
@@ -61,7 +78,7 @@ class BaseProgram(ABC):
             try:
                 return datetime.strptime(time_str, "%I:%M %p").time()
             except Exception as e:
-                self.status_logger.error(f"Error parsing time string '{time_str}': {e}")
+                self.prog_logger.error(f"Error parsing time string '{time_str}': {e}")
                 return None
 
     def within_schedule(self):
@@ -92,17 +109,21 @@ class BaseProgram(ABC):
             with open(self.status_file, "w") as f:
                 json.dump(status_dict, f)
         except Exception as e:
-            self.status_logger.error(f"Error writing status file: {e}")
+            self.prog_logger.error(f"Error writing status file: {e}")
 
     def read_status(self):
-        if not os.path.exists(self.status_file):
-            return None
         try:
             with open(self.status_file, "r") as f:
                 return json.load(f)
         except Exception as e:
-            self.status_logger.error(f"Error reading status file: {e}")
+            self.prog_logger.error(f"Error reading status file: {e}")
             return None
+
+    def disable_restart(self, bool):
+        status = self.read_status()
+        status['disable_restart'] = bool 
+        self.write_status(status)
+        
 
     @staticmethod
     def record_start(func):
@@ -122,11 +143,11 @@ class BaseProgram(ABC):
                 old_pid = status.get("pid")
                 try:
                     os.kill(old_pid, 9)  # Force kill the old process.
-                    self.status_logger.info(
+                    self.prog_logger.info(
                         f"Program {self.name} killed existing process with PID {old_pid} before starting new process."
                     )
                 except Exception as e:
-                    self.status_logger.error(
+                    self.prog_logger.error(
                         f"Error killing process {old_pid} for program {self.name}: {e}"
                     )
             pid = func(self, *args, **kwargs)
@@ -191,7 +212,7 @@ class BaseProgram(ABC):
             
             # Check for disable flag before proceeding.
             if current_status.get("disable_restart", False):
-                self.status_logger.info(f"Program '{self.name}' is disabled. Skipping monitor loop.")
+                self.prog_logger.info(f"Program '{self.name}' is disabled. Skipping monitor loop.")
                 time.sleep(self.check_alive_freq)
                 continue
 
@@ -200,27 +221,27 @@ class BaseProgram(ABC):
 
             if not self.within_schedule():
                 if self.process and self.process.poll() is None:
-                    self.status_logger.info(f"Program '{self.name}' is outside its scheduled time. Stopping.")
+                    self.prog_logger.info(f"Program '{self.name}' is outside its scheduled time. Stopping.")
                     self.stop()
                 time.sleep(self.check_alive_freq)
                 continue
 
             if self.monitor_func():
-                self.status_logger.warning(f"Program '{self.name}' needs restart.")
+                self.prog_logger.warning(f"Program '{self.name}' needs restart.")
                 if not self.keep_alive:
-                    self.status_logger.info(f"Keep alive flag is false for '{self.name}'. Ending monitor loop.")
+                    self.prog_logger.info(f"Keep alive flag is false for '{self.name}'. Ending monitor loop.")
                     break
                 self.retries += 1
                 if self.retries <= self.max_retries:
-                    self.status_logger.info(f"Restarting program '{self.name}', attempt {self.retries}.")
+                    self.prog_logger.info(f"Restarting program '{self.name}', attempt {self.retries}.")
                     self.start()
                     self.notify_restart(additional_info="Restarted by monitor loop.")
                 else:
-                    self.status_logger.error(f"Max retries reached for '{self.name}'. No further attempts will be made.")
+                    self.prog_logger.error(f"Max retries reached for '{self.name}'. No further attempts will be made.")
                     self.notify_failure(additional_info="Exceeded max retries.")
                     break
             else:
-                self.status_logger.debug(f"Program '{self.name}' is running fine.")
+                self.prog_logger.debug(f"Program '{self.name}' is running fine.")
                 self.retries = 0
 
             time.sleep(self.check_alive_freq)

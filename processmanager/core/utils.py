@@ -5,6 +5,7 @@ import json
 import hashlib
 import os
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,12 @@ def load_json(filename):
         return json.load(f)
 
         
-def load_schedules(filename, write_hash=False):
+def load_schedules(schedule_file: Path, write_hash=False):
     """Load schedules, validate or write a hash, and return (schedules, valid_hash)."""
     # logger.debug("Loading schedules")
+
     try:
-        with open(filename, 'r') as f:
+        with open(schedule_file, 'r') as f:
             data = json.load(f)
     except Exception as e:
         logger.error(f"Error loading schedules: {e}")
@@ -33,9 +35,9 @@ def load_schedules(filename, write_hash=False):
     digest = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
 
     # 3. Determine hash file path
-    base, _ext = os.path.splitext(os.path.basename(filename))
+    base, _ext = os.path.splitext(os.path.basename(schedule_file))
     hash_filename = f"{base}.hash"
-    hash_path = os.path.join(os.path.dirname(filename), hash_filename)
+    hash_path = os.path.join(os.path.dirname(schedule_file), hash_filename)
 
     # 4. Read existing hash (if any) and compare
     old_digest = None
@@ -58,7 +60,7 @@ def load_schedules(filename, write_hash=False):
             logger.error(f"Error writing hash file: {e}")
 
     return schedules, valid_hash
-    
+
     
     
 def dynamic_import(func_path):

@@ -1,5 +1,5 @@
 from processmanager import Scheduler
-
+from processmanager.config import config
 
 """
     Script that gets called by supervisor to run on reboot. Schedule file is 
@@ -11,10 +11,11 @@ from processmanager import Scheduler
     
     This is designed to be fully managed by supervisor. This runs on system
     boot, and is intended to always be running.  
+    
+    Change config in config.py or else schedulerctl will not match.
 """
 
-SCHEDULE_FILE_PATH = '/home/kyle/ProcessManager/schedules/full_schedule.json'
 
 if __name__ == '__main__':
-    scheduler = Scheduler(SCHEDULE_FILE_PATH)
+    scheduler = Scheduler(config)
     scheduler.run()

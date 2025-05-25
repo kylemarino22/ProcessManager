@@ -5,10 +5,11 @@ import os
 from sysdata.data_blob import dataBlob  # Assumes dataBlob provides a mongo_db() method
 from pymongo import MongoClient, errors
 import shutil
+from ..config import Config
 
 class MongoProgram(BaseProgram):
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, schedule, config: Config):
+        super().__init__(schedule, config)
         # Use the inherited status_file or one from config.
         # Set the monitor function to our custom monitor.
         self.monitor_func = self.custom_monitor
@@ -24,19 +25,19 @@ class MongoProgram(BaseProgram):
         mongod_path = shutil.which("mongod") or "/usr/bin/mongod"  # Adjust if needed
 
         cmd = f"{mongod_path} --dbpath \"{mongo_data}\""
-        self.status_logger.debug(f"Launching Mongo with command: {cmd}")
+        self.pm_logger.debug(f"Launching Mongo with command: {cmd}")
 
         try:
             self.process = subprocess.Popen(
                 ["bash", "-c", cmd],
-                stdout=open(self.output_file, "a"),
+                stdout=open(self.log_file, "a"),
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
-            self.status_logger.info(f"Started Mongo Program '{self.name}' with PID {self.process.pid}")
+            self.pm_logger.info(f"Started Mongo Program '{self.name}' with PID {self.process.pid}")
             return self.process.pid
         except Exception as e:
-            self.status_logger.error(f"Failed to start Mongo Program '{self.name}': {e}")
+            self.pm_logger.error(f"Failed to start Mongo Program '{self.name}': {e}")
             return None
 
     @BaseProgram.record_stop
@@ -44,13 +45,13 @@ class MongoProgram(BaseProgram):
         """
         Stops the Mongo process.
         """
-        self.status_logger.debug(f"Stopping Mongo Program: {self.name}")
+        self.pm_logger.debug(f"Stopping Mongo Program: {self.name}")
         if self.process:
             try:
                 self.process.terminate()
-                self.status_logger.info(f"Mongo Program '{self.name}' terminated.")
+                self.pm_logger.info(f"Mongo Program '{self.name}' terminated.")
             except Exception as e:
-                self.status_logger.error(f"Error stopping Mongo Program '{self.name}': {e}")
+                self.pm_logger.error(f"Error stopping Mongo Program '{self.name}': {e}")
 
     def custom_monitor(self):
         """
@@ -63,8 +64,8 @@ class MongoProgram(BaseProgram):
             # mongo_db() should throw an exception if the connection fails.
             client = d.mongo_db.client
             client.admin.command('ping')
-            self.status_logger.info("Mongo monitor check succeeded.")
+            self.pm_logger.info("Mongo monitor check succeeded.")
             return False
         except errors.ServerSelectionTimeoutError as e:
-            self.status_logger.error(f"Mongo monitor check failed: {e}")
+            self.pm_logger.error(f"Mongo monitor check failed: {e}")
             return True

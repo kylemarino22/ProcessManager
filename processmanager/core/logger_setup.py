@@ -1,6 +1,7 @@
 import os
 import logging
 from logging import FileHandler
+from ..config import Config
 
 class TruncatingFileHandler(FileHandler):
     """
@@ -38,11 +39,14 @@ class TruncatingFileHandler(FileHandler):
         except Exception as e:
             self.handleError(e)
 
-def setup_logger(name, log_file, level=logging.DEBUG):
+def setup_logger(name, log_dir, mark_restart, level=logging.DEBUG):
     """
     Sets up a logger using the TruncatingFileHandler.
     If the log file already exists and contains data, a restart header is appended.
     """
+
+    log_file = f"{log_dir}/process_manager.log" 
+
     logger = logging.getLogger(name)
     logger.setLevel(level)
     
@@ -57,22 +61,26 @@ def setup_logger(name, log_file, level=logging.DEBUG):
                 print(f"Error creating directory {dir_path}: {e}")
         
         # Append a restart header if the log file exists and is not empty.
-        if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
-            try:
-                with open(log_file, 'a') as f:
-                    f.write("\n====================== [Process Manager Restarted] =======================\n")
-            except Exception as e:
-                print(f"Error writing restart header to {log_file}: {e}")
+        if mark_restart:
+            if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
+                try:
+                    with open(log_file, 'a') as f:
+                        f.write("\n====================== [Process Manager Restarted] =======================\n")
+                except Exception as e:
+                    print(f"Error writing restart header to {log_file}: {e}")
 
-        handler = TruncatingFileHandler(log_file, maxBytes=10 * 1024 * 1024)
+        handler = TruncatingFileHandler(log_file, maxBytes=4 * 1024)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     
     return logger
 
-def setup_process_manager_logger(log_file="logs/process_manager.log", level=logging.DEBUG):
-    """
-    Convenience function for setting up a global process manager logger.
-    """
-    return setup_logger("ProcessManager", log_file, level)
+# def setup_process_manager_logger(log_dir, mark_restart=False, level=logging.DEBUG):
+#     """
+#     Convenience function for setting up a global process manager logger.
+#     """
+
+#     log_file = f"{log_dir}/process_manager.log"
+
+    # return setup_logger("ProcessManager", log_dir, mark_restart, level)
