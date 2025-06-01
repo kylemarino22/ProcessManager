@@ -12,7 +12,7 @@ from sysproduction.clean_truncate_log_files import clean_truncate_log_files
 # Import the Scheduler to access running programs.
 import sys
 sys.path.append("/home/kyle/ProcessManager/src")
-from scheduler import Scheduler
+# from scheduler import Scheduler
 
 def backup():
     # --- Backup Procedures ---

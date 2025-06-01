@@ -1,5 +1,6 @@
 from processmanager import Scheduler
 from processmanager.config import config
+import logging
 
 """
     Script that gets called by supervisor to run on reboot. Schedule file is 
@@ -17,5 +18,5 @@ from processmanager.config import config
 
 
 if __name__ == '__main__':
-    scheduler = Scheduler(config)
+    scheduler = Scheduler(config, logging.DEBUG)
     scheduler.run()

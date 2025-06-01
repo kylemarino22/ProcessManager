@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from tabulate import tabulate
 from processmanager.core.utils import load_schedules
+from .core.logger_setup import setup_logger
 from .core.supervisor_manager import reload_supervisor
 from .config import Config, config # Import class def and object
 
@@ -21,6 +22,8 @@ asyncio_logger.disabled = True
 def list_status(config: Config):
     """Lists the status of configured programs and tasks in three separate tables."""
     schedules, valid_hash = load_schedules(config.schedule_file)
+    pm_logger = logging.getLogger("process_manager")
+
 
     # ── 1) Schedule Valid table ───────────────────────────────────────────────
     field_table = [["Schedule Valid", str(valid_hash)]]
@@ -41,55 +44,44 @@ def list_status(config: Config):
         last_checkup = None
         disable_restart = None
 
-        if not class_path:
-            status = "No program_class provided"
-            short_path = ""
+        try:
+            # split into full module path + class
+            mod_name, cls_name = class_path.rsplit(".", 1)
 
-        else:
-            try:
-                # split into full module path + class
-                mod_name, cls_name = class_path.rsplit(".", 1)
+            # derive the "short" module (last segment) + class
+            short_mod = mod_name.split(".")[-1]
+            short_path = f"{short_mod}.{cls_name}"
 
-                # derive the "short" module (last segment) + class
-                short_mod = mod_name.split(".")[-1]
-                short_path = f"{short_mod}.{cls_name}"
 
-                # import & monitor as before
-                module = importlib.import_module(mod_name)
-                cls    = getattr(module, cls_name)
-                prog   = cls(schedule, config)
+            module = importlib.import_module(mod_name)
+            cls    = getattr(module, cls_name)
+            prog   = cls(schedule, config)
 
-                print(type(prog), prog)
+            pm_logger.debug(f"Program type: {type(prog)}, instance: {prog}")
 
-                # Run monitor func for program to check status
-                if hasattr(prog, "custom_monitor"):
-                    # silence all output
-                    logging.disable(logging.CRITICAL + 1)
+            # Run monitor func for program to check status
+            if hasattr(prog, "custom_monitor"):
+                # silence all output
+                pm_logger.debug(f"Running custom monitor for program '{name}'")
+                # logging.disable(logging.CRITICAL + 1)
 
-                    # with open(os.devnull, "w") as devnull, \
-                    #     contextlib.redirect_stdout(devnul):
+                is_stopped = prog.custom_monitor()
 
-                    is_stopped = prog.custom_monitor()
-
-                    logging.disable(logging.NOTSET)
-                    program_status = "stopped" if is_stopped else "running"
-                else:
-                    program_status = "unknown (no custom_monitor)"
-                
-
-                print("1")
-                status_dict = prog.read_status() 
+                # logging.disable(logging.NOTSET)
+                program_status = "stopped" if is_stopped else "running"
+                pm_logger.debug(f"Program '{name}' status: {program_status}")
+            else:
+                program_status = "unknown (no custom_monitor)"
             
-                print("@")
 
-                start_time = status_dict['time_started']
-                last_checkup = status_dict['last_checkup']
-                disable_restart = status_dict['disable_restart']
+            status_dict = prog.read_status() 
 
-                print("asdf")
+            start_time      = status_dict.get('time_started')
+            last_checkup    = status_dict.get('last_checkup')
+            disable_restart = status_dict.get('disable_restart', False)
 
-            except Exception as e:
-                print(f"Error: {e}")
+        except Exception as e:
+            print(f"Error: {e}")
 
         # Load in status dict
         prog_rows.append([name, short_path, program_status, 
@@ -190,28 +182,33 @@ def start_program(program_name, config: Config):
         
 def main():
     """Main entry point for the command-line script."""
-    parser = argparse.ArgumentParser(description="Simple Process Manager CLI") # Added description
+    parser = argparse.ArgumentParser(description="Simple Process Manager CLI")
     parser.add_argument("command", choices=["list", "stop", "start", "reload"],
-                        help="Command to perform: list program/task status, stop a program, or start a program.") # Added help
+                        help="Command to perform: list program/task status, stop a program, or start a program.")
     parser.add_argument("program_name", nargs="?", default=None,
-                        help="Name of the program for stop/start commands.") # Added help
+                        help="Name of the program for stop/start commands.")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose (debug) logging.")
 
     args = parser.parse_args()
+
+    # Set logging level based on verbose flag
+    level = logging.DEBUG if args.verbose else logging.INFO
+    pm_logger = setup_logger("process_manager", config.log_dir, level=level)
+    pm_logger.info("Starting process manager CLI")
 
     if args.command == "list":
         list_status(config)
 
     elif args.command == "stop":
         if args.program_name is None:
-            print("Error: Please specify a program name to stop.") # Changed print to include Error
-
+            print("Error: Please specify a program name to stop.")
         else:
             stop_program(args.program_name, config)
 
     elif args.command == "start":
         if args.program_name is None:
-            print("Error: Please specify a program name to start.") # Changed print to include Error
-
+            print("Error: Please specify a program name to start.")
         else:
             start_program(args.program_name, config)
 

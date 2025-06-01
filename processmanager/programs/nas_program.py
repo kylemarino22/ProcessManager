@@ -1,5 +1,5 @@
 # nas_program.py
-from ..core.program_base import BaseProgram
+from ..core.BaseProgram import BaseProgram
 import subprocess
 import os
 from ..config import Config
@@ -20,14 +20,14 @@ class NASProgram(BaseProgram):
         """
         # self.status_logger.error("NAS Program does not have start function due to mount requiring sudo.")
 
-        self.pm_logger.debug(f"Starting NAS Program: {self.name}")
+        self.job_logger.debug(f"Starting NAS Program: {self.name}")
         try:
             # Step 1: Check if readynas.local resolves and is reachable
             ping_command = ["ping", "-c", "1", "-W", "3", "readynas.local"]  # -W is timeout in seconds (Linux)
             ping_result = subprocess.run(ping_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
             if ping_result.returncode != 0:
-                self.pm_logger.error(f"NAS ping failed: {ping_result.stderr.decode().strip()}")
+                self.job_logger.error(f"NAS ping failed: {ping_result.stderr.decode().strip()}")
                 return None
 
             # Step 2: Mount in a detached process
@@ -37,21 +37,21 @@ class NASProgram(BaseProgram):
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
-            self.pm_logger.info(f"Started NAS Program '{self.name}' with PID {self.process.pid}")
+            self.job_logger.info(f"Started NAS Program '{self.name}' with PID {self.process.pid}")
             return self.process.pid
 
         except subprocess.TimeoutExpired:
-            self.pm_logger.error("Ping to NAS timed out.")
+            self.job_logger.error("Ping to NAS timed out.")
             return None
         except Exception as e:
-            self.pm_logger.error(f"Failed to start NAS Program '{self.name}': {e}")
+            self.job_logger.error(f"Failed to start NAS Program '{self.name}': {e}")
             return None
 
     def stop(self):
         """
         NAS Program does not require a stop function.
         """
-        self.pm_logger.info(f"NAS Program '{self.name}' stop() called. No action taken as stop is not needed.")
+        self.job_logger.info(f"NAS Program '{self.name}' stop() called. No action taken as stop is not needed.")
 
     def custom_monitor(self):
         """
@@ -64,14 +64,13 @@ class NASProgram(BaseProgram):
             items = os.listdir("/mnt/nas")
             # Filter to include only directories.
             dirs = [item for item in items if os.path.isdir(os.path.join("/mnt/nas", item))]
-            self.pm_logger.info(f"NASProgram.custom_monitor: Directories found in /mnt/nas: {dirs}")
-            print("here")
+            self.job_logger.info(f"NASProgram.custom_monitor: Directories found in /mnt/nas: {dirs}")
             if len(dirs) < 2:
-                self.pm_logger.warning("NAS mount check failed: fewer than 2 directories found. Attempting restart.")
+                self.job_logger.warning("NAS mount check failed: fewer than 2 directories found. Attempting restart.")
                 return True
             else:
-                self.pm_logger.info("NAS mount appears healthy.")
+                self.job_logger.info("NAS mount appears healthy.")
                 return False
         except Exception as e:
-            self.pm_logger.error(f"Error checking NAS mount: {e}")
+            self.job_logger.error(f"Error checking NAS mount: {e}")
             return True

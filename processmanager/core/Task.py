@@ -4,27 +4,35 @@ import io
 import contextlib
 import math
 from datetime import datetime, timedelta
-from .logger_setup import setup_process_manager_logger
 from .utils import dynamic_import
+from ..config import Config
+from .Job import Job
 
-class Task:
-    def __init__(self, config):
-        self.name = config.get('name')
-        self.func_path = config.get('func')
-        self.start_time_str = config.get('start')
-        self.freq_str = config.get('freq', None)
-        self.stop_time_str = config.get('stop', None)
-        self.run_on_complete = config.get('run_on_complete', [])
-        self.dependencies = config.get('dependencies', [])
-        self.days = config.get('days', None)
-        self.status_logger = setup_process_manager_logger()
-        self.output_file = config.get('log_path', f"{self.name}_output.log")
-        self.func = None
+class Task(Job):
+    def __init__(self, schedule, config: Config):
+
+        """
+        Task class handles calling of all scheduled functions, aka tasks.
+        Since a task only does a single function call, I don't think
+        there's a need to make this have a task defintion per task like
+        with the programs.
+        """        
+        
+        super().__init__(schedule, config) 
+
+        self.func_path = schedule.get('func')
+        self.start_time_str = schedule.get('start')
+        self.freq_str = schedule.get('freq', None)
+        self.stop_time_str = schedule.get('stop', None)
+        self.run_on_complete = schedule.get('run_on_complete', [])
+        self.dependencies = schedule.get('dependencies', [])
+        self.days = schedule.get('days', None)
+
         if self.func_path:
             try:
                 self.func = dynamic_import(self.func_path)
             except Exception as e:
-                self.status_logger.error(f"Error importing function '{self.func_path}': {e}")
+                self.job_logger.error(f"Error importing function '{self.func_path}': {e}")
 
     # Utility methods
     def get_target_datetime(self, time_str, date_obj):
@@ -59,7 +67,7 @@ class Task:
             elif freq_str.endswith('h'):
                 return int(freq_str[:-1]) * 3600
         except Exception as e:
-            self.status_logger.error(f"Error parsing frequency '{freq_str}': {e}")
+            self.job_logger.error(f"Error parsing frequency '{freq_str}': {e}")
         return None
 
     def get_allowed_days(self):
@@ -127,7 +135,7 @@ class Task:
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
-        self.status_logger.debug(f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})")
+        self.job_logger.debug(f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})")
         timer = threading.Timer(delay, self.run)
         timer.start()
 
@@ -136,7 +144,7 @@ class Task:
         Execute the task, log its output, reschedule it based on its frequency or next start time,
         and trigger any dependent tasks.
         """
-        self.status_logger.info(f"Running task '{self.name}'")
+        self.job_logger.info(f"Running task '{self.name}'")
         try:
             with io.StringIO() as buf, contextlib.redirect_stdout(buf):
                 self.func()
@@ -144,9 +152,9 @@ class Task:
             if output:
                 with open(self.output_file, 'a') as f:
                     f.write(output)
-            self.status_logger.info(f"Task '{self.name}' completed successfully")
+            self.job_logger.info(f"Task '{self.name}' completed successfully")
         except Exception as e:
-            self.status_logger.error(f"Error executing task '{self.name}': {e}")
+            self.job_logger.error(f"Error executing task '{self.name}': {e}")
 
         # Rescheduling logic after run
         now = datetime.now()
@@ -170,21 +178,21 @@ class Task:
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
-        self.status_logger.debug(f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})")
+        self.job_logger.debug(f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})")
         timer = threading.Timer(delay, self.run)
         timer.start()
 
         # Trigger dependent tasks.
         from scheduler import Scheduler  # local import to avoid circular dependency
         for dep in self.run_on_complete:
-            self.status_logger.debug(f"Task '{self.name}' completed, triggering dependent task '{dep}'")
+            self.job_logger.debug(f"Task '{self.name}' completed, triggering dependent task '{dep}'")
             dependent_task = Scheduler.instance.task_dict.get(dep)
             if dependent_task:
                 if not dependent_task.start_time_str:
-                    self.status_logger.debug(f"Dependent task '{dep}' has no start time; running immediately.")
+                    self.job_logger.debug(f"Dependent task '{dep}' has no start time; running immediately.")
                     threading.Thread(target=dependent_task.run).start()
                 else:
-                    self.status_logger.debug(f"Dependent task '{dep}' has a start time; scheduling it.")
+                    self.job_logger.debug(f"Dependent task '{dep}' has a start time; scheduling it.")
                     dependent_task.schedule()
             else:
-                self.status_logger.error(f"Dependent task '{dep}' not found in scheduler.")
+                self.job_logger.error(f"Dependent task '{dep}' not found in scheduler.")
