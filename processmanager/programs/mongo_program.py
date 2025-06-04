@@ -64,7 +64,7 @@ class MongoProgram(BaseProgram):
             # mongo_db() should throw an exception if the connection fails.
             client = d.mongo_db.client
             client.admin.command('ping')
-            self.job_logger.info("Mongo monitor check succeeded.")
+            self.job_logger.debug("Mongo monitor check succeeded.")
             return False
         except errors.ServerSelectionTimeoutError as e:
             self.job_logger.error(f"Mongo monitor check failed: {e}")

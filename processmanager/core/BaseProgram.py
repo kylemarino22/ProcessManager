@@ -95,7 +95,7 @@ class BaseProgram(Job):
             if pid:
                 new_status = {
                     "pid": pid,
-                    "time_started": datetime.now().isoformat(),
+                    "time_started": datetime.now().isoformat(sep=' ', timespec='seconds'),
                     "num_retries": self.retries,
                     "status": "running"
                 }
@@ -157,7 +157,7 @@ class BaseProgram(Job):
                 time.sleep(self.check_alive_freq)
                 continue
 
-            current_status["last_checkup"] = datetime.now().isoformat()
+            current_status["last_checkup"] = datetime.now().isoformat(sep=' ', timespec='seconds')
             self.write_status(current_status)
 
             if not self.within_schedule():

@@ -2,7 +2,7 @@
 import json
 import time
 import importlib
-from .logger_setup import setup_base_logging, get_logger
+from .logger_setup import setup_pm_logging, get_logger
 from .BaseProgram import BaseProgram
 from .Task import Task
 from .utils import load_schedules
@@ -28,9 +28,8 @@ class Scheduler:
         self.sorted_task_queue = []
         self.task_dict = {}
 
-        pm_log_file = f"{config.log_dir}/process-manager.log"
         # Probably don't need mark restart anymore, but I'll keep it since I prob don't need to remove
-        setup_base_logging(pm_log_file, level=log_level, mark_restart=True)        
+        setup_pm_logging(config.log_dir, level=log_level, mark_restart=True)        
 
         self.pm_logger = get_logger("process-manager")
         
@@ -79,7 +78,7 @@ class Scheduler:
 
         self.task_dict = {task.name: task for task in self.tasks}
         # Scheduler.instance = self
-        self.pm_logger.debug("Initialization complete with %d programs and %d tasks",
+        self.pm_logger.info("Initialization complete with %d programs and %d tasks",
                           len(self.programs), len(self.tasks))
 
     def schedule_tasks(self):

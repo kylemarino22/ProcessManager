@@ -19,6 +19,7 @@ class TWS_Program(BaseProgram):
         # Override the monitor function with a custom one.
         self.monitor_func = self.custom_monitor
 
+    @BaseProgram.record_start
     def start(self):
         """
         Starts the TWS program using a predefined command.
@@ -38,24 +39,28 @@ class TWS_Program(BaseProgram):
                 preexec_fn=os.setsid
             )
             self.job_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
+            return self.process.pid
         except Exception as e:
             self.job_logger.error(f"Failed to start TWS program '{self.name}': {e}")
+            return None
 
 
+    @BaseProgram.record_stop
     def stop(self):
         """
         Stops the TWS program.
         """
         self.job_logger.debug(f"Stopping TWS program: {self.name}")
-        if self.process:
-            try:
+        
+        try:
+            if self.process:
                 self.process.terminate()
-                list_and_kill_process("ibcstart.sh")
-                list_and_kill_process("xterm")
-                
-                self.job_logger.info(f"TWS program '{self.name}' terminated.")
-            except Exception as e:
-                self.job_logger.error(f"Error stopping TWS program '{self.name}': {e}")
+            list_and_kill_process("ibcstart.sh")
+            list_and_kill_process("xterm")
+            
+            self.job_logger.info(f"TWS program '{self.name}' terminated.")
+        except Exception as e:
+            self.job_logger.error(f"Error stopping TWS program '{self.name}': {e}")
 
     def custom_monitor(self):
         """
@@ -64,61 +69,57 @@ class TWS_Program(BaseProgram):
         Returns True if the program should be restarted.
         """
 
-        # This is needed to attach ib to event loop
-
         import asyncio
-        # Create or get an event loop for the current thread
+
+        # 1) Get or create the asyncio loop for this thread.
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        # First, check the basic process status.
-        # TWS is started with a script which opens an xterm window, so we expect the actual process
-        # to be "xterm" and not the script name.
-
-        # if self.default_monitor(program):
-        #     print("Process not running, restarting...")
-        #     return True
-
-        # If IB operating hours are not valid, stop the process.
+        # 2) If outside IB hours, indicate no restart now.
         if not check_ib_valid_time():
-            # self.stop()
-            self.job_logger.debug("[TWS monitor] Outside IB operating hours, stopping process.")
-            return False  # Signal that a restart is needed when valid time resumes.
+            self.job_logger.debug("Outside IB operating hours, stopping process.")
+            return False  # "no restart needed until hours resume"
 
         try:
             self.data = dataBlob()
-            self.job_logger.debug("[TWS monitor] Creating IB conn through dataBroker ...")
+            self.job_logger.debug("Creating IB conn through dataBroker ...")
 
-            # 1) Manually create the executor
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            future   = executor.submit(dataBroker, self.data)
+            # 3) **Run dataBroker(...) with a 3s timeout on the same loop**.
+            #    This assumes that dataBroker(...) is defined as:
+            #        async def dataBroker(data_blob): ...
+            #
+            #    If dataBroker is NOT already async, you’d first have to wrap it in a coroutine.
+            #
 
-            try:
-                # 2) Wait up to 3 seconds
-                broker_data = future.result(timeout=3)
-                self.job_logger.debug("[TWS monitor] Fetching broker data succeeded")
-            except concurrent.futures.TimeoutError:
-                # 3) Shutdown without waiting for the thread to finish
-                #    (Python 3.9+ allows cancel_futures=True)
-                executor.shutdown(wait=False, cancel_futures=True)
-                self.job_logger.error("[TWS monitor] dataBroker() timed out after 3 seconds")
-                # 4) Now re-raise so your outer except sees it
-                raise RuntimeError("Failed to get broker_data in time")
-            else:
-                # If we got broker_data, we can still tear down the pool
-                executor.shutdown(wait=False)
-
-
-            _ = broker_data.get_total_capital_value_in_base_currency()
-            # Disconnect IB here
-            self.data.close()
+            broker_data = dataBroker(self.data)
+            self.job_logger.debug("Created data broker")
             
-            return False # No restart needed.
+            # coro = dataBroker(self.data)
+            # try:
+            #     broker_data = loop.run_until_complete(
+            #         asyncio.wait_for(coro, timeout=3.0)
+            #     )
+            #     self.job_logger.debug("[TWS monitor] Fetching broker data succeeded")
+            # except asyncio.TimeoutError:
+            #     self.job_logger.error("[TWS monitor] dataBroker() timed out after 3 seconds")
+            #     return True   # signal “failed/timeout → restart needed”
+            # except Exception as exc:
+            #     self.job_logger.error(f"[TWS monitor] dataBroker raised: {exc}")
+            #     return True
+
+            # 4) If we got here, broker_data is available.
+            total_capital = broker_data.get_total_capital_value_in_base_currency()
+
+            #    Disconnect from IB cleanly
+            self.data.close()
+
+            self.job_logger.debug(f"IB online. Total capital: {total_capital}")
+
+            return False  # no restart needed
 
         except Exception as e:
-            self.job_logger.error(f"[TWS monitor] Error fetching broker data: {e}")
-
+            self.job_logger.error(f"Error fetching broker data: {e}")
             return True

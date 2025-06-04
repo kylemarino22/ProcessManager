@@ -55,6 +55,11 @@ elsewhere in code:
     
 """            
 
+def setup_pm_logging(log_dir, level=logging.DEBUG, mark_restart=False):
+    
+    pm_log_file = f"{log_dir}/process-manager.log"
+    setup_base_logging(pm_log_file, level=level, mark_restart=mark_restart)
+
 def setup_base_logging(log_file, level=logging.DEBUG, mark_restart=False):
     """
     Sets up the root logger to write to a shared file and stdout.
@@ -62,6 +67,16 @@ def setup_base_logging(log_file, level=logging.DEBUG, mark_restart=False):
     """
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
+
+    noisy_libs = {
+        "ib_insync": logging.WARNING,
+        "matplotlib": logging.INFO,
+        "urllib3": logging.ERROR,
+        "asyncio": logging.WARNING
+    }
+
+    for lib_name, lib_level in noisy_libs.items():
+        logging.getLogger(lib_name).setLevel(lib_level)
 
     if not root_logger.hasHandlers():
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - [%(name)s] - %(message)s')
@@ -77,7 +92,7 @@ def setup_base_logging(log_file, level=logging.DEBUG, mark_restart=False):
                 f.write("\n====================== [Process Manager Restarted] =======================\n")
 
         # File handler (shared)
-        file_handler = TruncatingFileHandler(log_file, maxBytes=4 * 1024)
+        file_handler = TruncatingFileHandler(log_file, maxBytes=256 * 1024)
         file_handler.setFormatter(formatter)
         file_handler.setLevel(level)
         root_logger.addHandler(file_handler)

@@ -84,10 +84,10 @@ class DataServerProgram(BaseProgram):
         manager = QueueManager(address=('127.0.0.1', 50000), authkey=b'secret')
         try:
             manager.connect()
-            self.job_logger.info("Connection to data server succeeded.")
+            self.job_logger.debug("Connection to data server succeeded.")
         except Exception as e:
             self.job_logger.error(f"[Client] Error connecting to data server: {e}")
-            self.job_logger.info("Attempting restart of data server.")
+            self.job_logger.debug("Attempting restart of data server.")
             return True
 
         return False

@@ -90,7 +90,8 @@ class Job(ABC):
         Notifies via email that the script has died and was successfully restarted.
         """
         subject = f"Script Restarted: {self.name}"
-        body = f"The script '{self.name}' has died and was successfully restarted at {datetime.now().isoformat()}.\n"
+        body = f"The script '{self.name}' has died and was successfully restarted \
+            at {datetime.now().isoformat(sep=' ', timespec='seconds')}.\n"
         if additional_info:
             body += f"\nAdditional Info: {additional_info}"
         send_mail_msg(body, subject)
@@ -100,7 +101,8 @@ class Job(ABC):
         Notifies urgently via email that the script has failed more than allowed times.
         """
         subject = f"URGENT: Script {self.name} failed more than allowed times"
-        body = f"The script '{self.name}' has failed {self.retries} times as of {datetime.now().isoformat()}.\nImmediate action is required."
+        body = f"The script '{self.name}' has failed {self.retries} times as of \
+            {datetime.now().isoformat(sep=' ', timespec='seconds')}.\nImmediate action is required."
         if additional_info:
             body += f"\nAdditional Info: {additional_info}"
         send_mail_msg(body, subject)

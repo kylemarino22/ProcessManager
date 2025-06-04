@@ -44,7 +44,7 @@
     {
         "type": "task",
         "name": "update total capital",
-        "func": "tasks.update_total_capital_wrapper.update_total_capital_wrapper",
+        "func": "processmanager.tasks.update_total_capital_wrapper.update_total_capital_wrapper",
         "start": "00:45 am pst",
         "freq": "1 h"
     },
@@ -52,7 +52,7 @@
     {
         "type": "task",
         "name": "do backups",
-        "func": "tasks.backup_and_reboot.backup",
+        "func": "processmanager.tasks.backup_and_reboot.backup",
         "start": "11:59 pm pst"
     }
     ]

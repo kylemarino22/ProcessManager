@@ -135,7 +135,7 @@ class Task(Job):
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
-        self.job_logger.debug(f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})")
+        self.job_logger.info(f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})")
         timer = threading.Timer(delay, self.run)
         timer.start()
 
@@ -145,6 +145,9 @@ class Task(Job):
         and trigger any dependent tasks.
         """
         self.job_logger.info(f"Running task '{self.name}'")
+        
+        status = self.read_status()
+        
         try:
             with io.StringIO() as buf, contextlib.redirect_stdout(buf):
                 self.func()
@@ -153,8 +156,12 @@ class Task(Job):
                 with open(self.output_file, 'a') as f:
                     f.write(output)
             self.job_logger.info(f"Task '{self.name}' completed successfully")
+            status['last-ran'] = datetime.now().isoformat(sep=' ', timespec='seconds')
         except Exception as e:
             self.job_logger.error(f"Error executing task '{self.name}': {e}")
+            status['last-err'] = datetime.now().isoformat(sep=' ', timespec='seconds')
+
+        self.write_status(status)
 
         # Rescheduling logic after run
         now = datetime.now()

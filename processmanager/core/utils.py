@@ -4,10 +4,10 @@ import subprocess
 import json
 import hashlib
 import os
-import logging
+from .logger_setup import get_logger
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 def load_json(filename):
@@ -18,6 +18,8 @@ def load_json(filename):
 def load_schedules(schedule_file: Path, write_hash=False):
     """Load schedules, validate or write a hash, and return (schedules, valid_hash)."""
     # logger.debug("Loading schedules")
+    
+    logger = get_logger("utils")
 
     try:
         with open(schedule_file, 'r') as f:
@@ -86,6 +88,8 @@ def list_and_kill_process(process_name):
     """
     Lists running processes and kills any process matching the given name.
     """
+    logger = get_logger("utils")
+
     try:
         result = subprocess.run(['ps', '-e', '-o', 'pid,comm'], stdout=subprocess.PIPE, text=True)
         processes = result.stdout.splitlines()
@@ -94,10 +98,10 @@ def list_and_kill_process(process_name):
             if len(parts) == 2:
                 pid, command = parts
                 if command == process_name:
-                    print(f"Found process '{process_name}' with PID {pid}. Killing it...")
+                    logger.debug(f"Found process '{process_name}' with PID {pid}. Killing it...")
                     subprocess.run(['kill', '-9', pid])
-                    print(f"Process '{process_name}' with PID {pid} has been killed.")
+                    logger.debug(f"Process '{process_name}' with PID {pid} has been killed.")
                     return
-        print(f"Process '{process_name}' is not running.")
+        logger.debug(f"Process '{process_name}' is not running.")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
