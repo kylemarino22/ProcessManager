@@ -13,6 +13,10 @@ from processmanager.core.logger_setup import setup_pm_logging, get_logger
 from processmanager.core.supervisor_manager import reload_supervisor
 from processmanager.config import Config, config # Import class def and object
 from processmanager.core.Task import Task
+from processmanager.core.utils import get_job_sched
+import processmanager
+
+pm_logger = None
 
 def list_status(config: Config):
     """Lists the status of configured programs and tasks in three separate tables."""
@@ -91,22 +95,28 @@ def list_status(config: Config):
     print()
 
     # ── 3) Tasks table ───────────────────────────────────────────────────────
+
+    PM_ROOT = Path(processmanager.__file__).parent
+    TASKS_DIR   = PM_ROOT / "tasks"
+
     task_rows = []
     for schedule in schedules:
         if schedule.get("type") != "task":
             continue
         name      = schedule.get("name", "")
-        func_path = schedule.get("func", "")
+        main_path = schedule.get("main_path", "")
         start     = schedule.get("start", "")
         freq      = schedule.get("freq", "")
 
-        # derive the "short" module (last segment) + class
-        mod_name, cls_name = func_path.rsplit(".", 1)
-        short_mod = mod_name.split(".")[-1]
-        short_path = f"{short_mod}.{cls_name}"
-
-        # if the function path begins with "processmanager", use the short version
-        display_path = short_path if func_path.startswith("processmanager") else func_path
+        # (2) Attempt to make a “tasks/<filename>” short path if main_path is under TASKS_DIR:
+        display_path = main_path  # default
+        try:
+            p = Path(main_path).resolve()
+            rel = p.relative_to(TASKS_DIR)  # will succeed only if main_path starts with TASKS_DIR
+            display_path = f"tasks/{rel.name}"  # e.g. “tasks/foo_task.py”
+        except Exception:
+            # either main_path isn’t under TASKS_DIR, or resolution failed—fall back to full path
+            display_path = main_path
 
         task = Task(schedule, config)
         status_dict = task.read_status()
@@ -117,7 +127,7 @@ def list_status(config: Config):
 
     print(tabulate(
         task_rows,
-        headers=["Name", "Function Path", "Start", "Freq", "Last Ran", "Last Err"],
+        headers=["Name", "Task Path", "Start", "Freq", "Last Ran", "Last Err"],
         tablefmt="rounded_outline"
     ))
 
@@ -128,23 +138,9 @@ def stop_program(program_name, config: Config):
     Finds the schedule for a given program, instantiates its class,
     calls its stop() method, and updates its status file to set disable_restart = True.
     """
-    pm_logger = get_logger("process_manager")
-
-    schedules, valid_hash = load_schedules(config.schedule_file)
-    prog_sched = None
-    for schedule in schedules:
-        if schedule.get("type") == "program" and schedule.get("name") == program_name:
-            prog_sched = schedule 
-            break
-    if not prog_sched:
-        pm_logger.error(f"No schedule found for program '{program_name}'")
-        return
-
-    class_path = prog_sched.get("program_class")
-    if not class_path:
-        pm_logger.error(f"No program_class provided for '{program_name}'")
-        return
-
+    prog_sched = get_job_sched(program_name, "program", config.schedule_file) 
+    class_path = prog_sched['program_class']
+    
     try:
         module_name, class_name = class_path.rsplit(".", 1)
         module = importlib.import_module(module_name)
@@ -153,10 +149,9 @@ def stop_program(program_name, config: Config):
         prog = cls(prog_sched, config)
 
         prog.stop()
-
         prog.disable_restart(True)
-
         pm_logger.info(f"Program '{program_name}' stopped and disable_restart set to True.")
+
     except Exception as e:
         pm_logger.error(f"Error stopping program '{program_name}': {e}")
 
@@ -166,23 +161,8 @@ def start_program(program_name, config: Config):
     calls its start() method, and updates its status file to set disable_restart = False.
     """
 
-    pm_logger = get_logger("process_manager")
-
-    schedules, _ = load_schedules(config.schedule_file)
-    prog_sched = None
-    for schedule in schedules:
-        if schedule.get("type") == "program" and schedule.get("name") == program_name:
-            prog_sched = schedule 
-            break
-
-    if not prog_sched:
-        pm_logger.error(f"No schedule found for program '{program_name}'")
-        return
-
-    class_path = prog_sched.get("program_class")
-    if not class_path:
-        pm_logger.error(f"No program_class provided for '{program_name}'")
-        return
+    prog_sched = get_job_sched(program_name, "program", config.schedule_file) 
+    class_path = prog_sched['program_class']
 
     try:
         module_name, class_name = class_path.rsplit(".", 1)
@@ -192,21 +172,33 @@ def start_program(program_name, config: Config):
 
         # Call program start, discard result
         prog.start()
-
         prog.disable_restart(False)
-
         pm_logger.debug(f"Program '{program_name}' started and disable restart set to False.")
     except Exception as e:
-        pm_logger.debug(f"Error starting program '{program_name}': {e}")
-        
+        pm_logger.error(f"Error starting program '{program_name}': {e}")
+
+
+def run_task(task_name, config: Config):
+
+    task_sched = get_job_sched(task_name, "task", config.schedule_file) 
+
+    try:
+        task = Task(task_sched, config)
+
+        pm_logger.info(f"Manually running task {task_name}")
+        t = task.run_threaded()
+        t.join()
+
+    except Exception as e:
+       pm_logger.error(f"Error running task {task_name}, {e}") 
 
         
 def main():
     """Main entry point for the command-line script."""
     parser = argparse.ArgumentParser(description="Simple Process Manager CLI")
-    parser.add_argument("command", choices=["list", "stop", "start", "reload"],
+    parser.add_argument("command", choices=["list", "stop", "start", "reload", "run"],
                         help="Command to perform: list program/task status, stop a program, or start a program.")
-    parser.add_argument("program_name", nargs="?", default=None,
+    parser.add_argument("job_name", nargs="?", default=None,
                         help="Name of the program for stop/start commands.")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable verbose (debug) logging.")
@@ -216,23 +208,31 @@ def main():
     # Set logging level based on verbose flag
     level = logging.DEBUG if args.verbose else logging.INFO
     setup_pm_logging(config.log_dir, level, mark_restart=False)
-    # pm_logger = setup_logger("process_manager", config.log_dir, level=level)
-    # pm_logger.info("Starting process manager CLI")
-
+    
+    # Use a global logger
+    global pm_logger
+    pm_logger = get_logger("process_manager")
+    
     if args.command == "list":
         list_status(config)
 
     elif args.command == "stop":
-        if args.program_name is None:
-            print("Error: Please specify a program name to stop.")
-        else:
-            stop_program(args.program_name, config)
+        if args.job_name is None:
+            raise Exception("Error: Please specify a program name to stop.")
+        
+        stop_program(args.job_name, config)
 
     elif args.command == "start":
-        if args.program_name is None:
-            print("Error: Please specify a program name to start.")
-        else:
-            start_program(args.program_name, config)
+        if args.job_name is None:
+            raise Exception("Error: Please specify a program name to start.")
+        
+        start_program(args.job_name, config)
+
+    elif args.command == "run":
+        if args.job_name is None:
+            raise Exception("Error: Please specify a task name to run.")
+
+        run_task(args.job_name, config)
 
     elif args.command == "reload":
         reload_supervisor()

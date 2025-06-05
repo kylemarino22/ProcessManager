@@ -1,12 +1,14 @@
+import sys
 import threading
-import time
-import io
-import contextlib
+import subprocess
+import logging
 import math
+from pathlib import Path
 from datetime import datetime, timedelta
-from .utils import dynamic_import
+from .utils import get_job_sched
 from ..config import Config
 from .Job import Job
+
 
 class Task(Job):
     def __init__(self, schedule, config: Config):
@@ -20,19 +22,22 @@ class Task(Job):
         
         super().__init__(schedule, config) 
 
-        self.func_path = schedule.get('func')
+        self.main_path = schedule.get('main_path')  # path to a standalone .py file
+        if not self.main_path:
+            self.job_logger.error(f"Missing 'main_path' for task '{self.name}'")
+        else:
+            # Optional: verify file exists on init
+            try:
+                Path(self.main_path).resolve(strict=True)
+            except Exception:
+                self.job_logger.error(f"Cannot find main_path '{self.main_path}' for task '{self.name}'")
+
         self.start_time_str = schedule.get('start')
         self.freq_str = schedule.get('freq', None)
         self.stop_time_str = schedule.get('stop', None)
         self.run_on_complete = schedule.get('run_on_complete', [])
-        self.dependencies = schedule.get('dependencies', [])
         self.days = schedule.get('days', None)
 
-        if self.func_path:
-            try:
-                self.func = dynamic_import(self.func_path)
-            except Exception as e:
-                self.job_logger.error(f"Error importing function '{self.func_path}': {e}")
 
     # Utility methods
     def get_target_datetime(self, time_str, date_obj):
@@ -102,23 +107,23 @@ class Task(Job):
                 return next_date
             days_ahead += 1
 
-    # Scheduling methods
     def schedule(self):
         """
-        Schedule the task to run at the next appropriate time based on its start time, frequency, and allowed days.
+        Schedule the task to run at the next appropriate time based on its start time,
+        frequency, and allowed days. When it's time, call run_threaded().
         """
         now = datetime.now()
         candidate_date = now.date()
         start_dt, stop_dt = self.get_day_window(candidate_date)
 
-        # If today is not allowed or we've passed today's window, move to the next allowed date.
+        # If today is not allowed or we've passed today’s window, advance to next allowed date
         if now.weekday() not in self.get_allowed_days() or now >= stop_dt:
             candidate_date = self.get_next_allowed_date(now.date(), days_ahead=1)
             start_dt, stop_dt = self.get_day_window(candidate_date)
 
         freq_seconds = self.parse_frequency(self.freq_str) if self.freq_str else None
 
-        if freq_seconds and now >= start_dt and now < stop_dt:
+        if freq_seconds and start_dt <= now < stop_dt:
             elapsed = (now - start_dt).total_seconds()
             n = math.ceil(elapsed / freq_seconds)
             next_run = start_dt + timedelta(seconds=n * freq_seconds)
@@ -129,77 +134,120 @@ class Task(Job):
         elif now < start_dt:
             next_run = start_dt
         else:
-            # No frequency specified or current time is past stop time.
+            # No frequency specified or current time ≥ stop time
             candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
             start_dt, stop_dt = self.get_day_window(candidate_date)
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
-        self.job_logger.info(f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})")
-        timer = threading.Timer(delay, self.run)
+        self.job_logger.info(
+            f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})"
+        )
+        timer = threading.Timer(delay, self.run_threaded)
+        timer.daemon = True
         timer.start()
 
-    def run(self):
+    def run_threaded(self):
         """
-        Execute the task, log its output, reschedule it based on its frequency or next start time,
-        and trigger any dependent tasks.
+        Launch this task in a separate Python process. While that process runs,
+        its stdout/stderr are appended to self.log_file. Once it exits, we update
+        status, schedule the next run, and trigger dependents.
         """
-        self.job_logger.info(f"Running task '{self.name}'")
-        
-        status = self.read_status()
-        
-        try:
-            with io.StringIO() as buf, contextlib.redirect_stdout(buf):
-                self.func()
-                output = buf.getvalue()
-            if output:
-                with open(self.output_file, 'a') as f:
-                    f.write(output)
-            self.job_logger.info(f"Task '{self.name}' completed successfully")
-            status['last-ran'] = datetime.now().isoformat(sep=' ', timespec='seconds')
-        except Exception as e:
-            self.job_logger.error(f"Error executing task '{self.name}': {e}")
-            status['last-err'] = datetime.now().isoformat(sep=' ', timespec='seconds')
+        def _worker():
+            # 1) Build the subprocess command
+            python_exe = sys.executable
+            cmd = [python_exe, str(self.main_path)]
 
-        self.write_status(status)
+            # 2) Open the log file in append mode
+            try:
+                log_fh = open(self.log_file, "a")
+            except Exception as e:
+                self.job_logger.error(f"Cannot open log file '{self.log_file}': {e}")
+                return
 
-        # Rescheduling logic after run
+            # 3) Launch the subprocess, redirecting stdout+stderr → log_fh
+            self.job_logger.info(f"Starting subprocess for task '{self.name}': {cmd}")
+            proc = subprocess.Popen(
+                cmd,
+                stdout=log_fh,
+                stderr=subprocess.STDOUT,
+            )
+
+            exit_code = None
+            try:
+                # 4) Wait for it to finish
+                exit_code = proc.wait()
+            except Exception as e:
+                self.job_logger.error(f"Error while waiting for subprocess '{self.name}': {e}")
+            finally:
+                log_fh.close()
+
+            # 5) Update status based on exit code
+            status = self.read_status()
+            if exit_code == 0:
+                self.job_logger.info(f"Task '{self.name}' subprocess exited cleanly (code 0)")
+                status['last-ran'] = datetime.now().isoformat(sep=' ', timespec='seconds')
+            else:
+                self.job_logger.error(
+                    f"Task '{self.name}' subprocess exited with code {exit_code}"
+                )
+                status['last-err'] = datetime.now().isoformat(sep=' ', timespec='seconds')
+
+            self.write_status(status)
+
+            # 6) Now schedule the next run (independent of how long the subprocess took)
+            self._schedule_next_run()
+
+            # 7) Trigger any dependent tasks
+            self._trigger_dependents()
+
+        thread = threading.Thread(target=_worker, name=f"task-{self.name}")
+        thread.daemon = True
+        thread.start()
+        return thread
+
+
+    def _schedule_next_run(self):
+        """
+        Exactly the same logic you already had to figure out the next run datetime.
+        Then start a Timer calling run_threaded().
+        """
         now = datetime.now()
         candidate_date = now.date()
         start_dt, stop_dt = self.get_day_window(candidate_date)
-        allowed_days = self.get_allowed_days()
 
         if self.freq_str:
             freq_seconds = self.parse_frequency(self.freq_str)
-            if freq_seconds:
-                next_run = now + timedelta(seconds=freq_seconds)
-                if now >= stop_dt or next_run > stop_dt:
-                    candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
-                    start_dt, stop_dt = self.get_day_window(candidate_date)
-                    next_run = start_dt
+            next_run = now + timedelta(seconds=freq_seconds)
+            if now >= stop_dt or next_run > stop_dt:
+                candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
+                start_dt, stop_dt = self.get_day_window(candidate_date)
+                next_run = start_dt
         else:
-            # No frequency specified; schedule at the next valid day's start if we've passed today's scheduled start.
             if now >= start_dt:
                 candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
             start_dt, stop_dt = self.get_day_window(candidate_date)
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
-        self.job_logger.debug(f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})")
-        timer = threading.Timer(delay, self.run)
+        self.job_logger.debug(
+            f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})"
+        )
+        timer = threading.Timer(delay, self.run_threaded)
+        timer.daemon = True
         timer.start()
 
-        # Trigger dependent tasks.
-        from scheduler import Scheduler  # local import to avoid circular dependency
+    def _trigger_dependents(self):
         for dep in self.run_on_complete:
-            self.job_logger.debug(f"Task '{self.name}' completed, triggering dependent task '{dep}'")
-            dependent_task = Scheduler.instance.task_dict.get(dep)
-            if dependent_task:
-                if not dependent_task.start_time_str:
-                    self.job_logger.debug(f"Dependent task '{dep}' has no start time; running immediately.")
-                    threading.Thread(target=dependent_task.run).start()
+            self.job_logger.debug(f"Task '{self.name}' completed, triggering '{dep}'")
+            dependent = get_job_sched(dep, "task", self.config.schedule_file)
+
+            if dependent:
+                if not dependent.start_time_str:
+                    self.job_logger.debug(f"Dependent '{dep}' has no start time; running immediately.")
+                    threading.Thread(target=dependent.run_threaded, daemon=True).start()
                 else:
-                    self.job_logger.debug(f"Dependent task '{dep}' has a start time; scheduling it.")
-                    dependent_task.schedule()
+                    self.job_logger.debug(f"Dependent '{dep}' has a start time; scheduling it.")
+                    dependent.schedule()
             else:
                 self.job_logger.error(f"Dependent task '{dep}' not found in scheduler.")

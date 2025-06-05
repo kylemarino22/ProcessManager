@@ -36,7 +36,7 @@ class Scheduler:
 
     def initialize(self):
         
-        schedules, valid_hash = load_schedules(self.config.schedule_file, write_hash=True)
+        schedules, _ = load_schedules(self.config.schedule_file, write_hash=True)
 
         for job_sched in schedules:
 

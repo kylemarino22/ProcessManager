@@ -14,7 +14,7 @@
         "name": "tws",
         "program_class": "processmanager.programs.tws_program.TWS_Program",
         "keep_alive": true,
-        "check_alive_freq": "5 m",
+        "check_alive_freq": "1 m",
         "max_retries": 9999999
     },
     {
@@ -34,26 +34,40 @@
         "max_retries": 10
     },
 
+
+    {
+        "type": "task",
+        "name": "do-backups",
+        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/backup_and_reboot.py",
+        "start": "11:59 pm pst"
+    },
+
+
     {
         "type": "task",
         "name": "update-strategy-allocation",
-        "func": "sysproduction.update_strategy_capital.update_strategy_capital",
+        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_strategy_capital.py",
         "start": "00:45 am pst"
     },
-
     {
         "type": "task",
-        "name": "update total capital",
-        "func": "processmanager.tasks.update_total_capital_wrapper.update_total_capital_wrapper",
+        "name": "update-total-capital",
+        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_total_capital.py",
         "start": "00:45 am pst",
         "freq": "1 h"
     },
-
     {
         "type": "task",
-        "name": "do backups",
-        "func": "processmanager.tasks.backup_and_reboot.backup",
-        "start": "11:59 pm pst"
+        "name": "auto-roll", 
+        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/auto_roll.py",
+        "start": "00:50 am pst"
+    },
+    {
+        "type": "task",
+        "name": "update-sampled-contracts",
+        "main_path" : "/home/kyle/ProcessManager/processmanager/tasks/update_sampled_contracts.py",
+        "start": "10:19 am pst"
     }
+
     ]
   }

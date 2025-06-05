@@ -15,6 +15,21 @@ def load_json(filename):
         return json.load(f)
 
         
+def get_job_sched(job_name, type, schedule_file: Path) -> dict:
+
+    schedules, _ = load_schedules(schedule_file)
+
+    job_sched = None
+    for schedule in schedules:
+        if schedule.get("type") == type and schedule.get("name") == job_name:
+            job_sched = schedule 
+            break
+    if not job_sched:
+        raise ValueError(f"No schedule found for program '{job_name}'")
+    
+    return job_sched
+
+        
 def load_schedules(schedule_file: Path, write_hash=False):
     """Load schedules, validate or write a hash, and return (schedules, valid_hash)."""
     # logger.debug("Loading schedules")

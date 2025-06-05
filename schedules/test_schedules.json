@@ -20,4 +20,40 @@
     } 
     ]
   }
+
+
+  ,
+    {
+        "type": "task",
+        "name": "update-sampled-contracts",
+        "func" : "sysproduction.update_sampled_contracts.update_sampled_contracts",
+        "start": "00:50 am pst"
+    },
+    {
+        "type": "task",
+        "name": "update-fx-prices",
+        "func" : "sysproduction.update_fx_prices.update_fx_prices",
+        "start": "01:00 am pst"
+    },
+    {
+        "type": "task",
+        "name": "update-asia-prices",
+        "func" : "sysproduction.",
+        "start": 
+
+    },
+    {
+        "type": "task",
+        "name": "update-emea-prices",
+        "func" : ,
+        "start": 
+
+    },
+    {
+        "type": "task",
+        "name": "update-ams-prices",
+        "func" : ,
+        "start": 
+
+    }
   
