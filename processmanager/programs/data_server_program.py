@@ -25,7 +25,7 @@ class DataServerProgram(BaseProgram):
             command = (
                 f"source $HOME/.profile; "
                 f"exec /home/kyle/anaconda3/envs/pysystemenv/bin/python "
-                f"/home/kyle/pysystemtrade/kyle_tests/data_engine/data_server_v2.py "
+                f"/home/kyle/projects/dataserver/dataserver/ib_dataserver/main.py "
                 f">> {self.log_file} 2>&1"
             )
             self.process = subprocess.Popen(
