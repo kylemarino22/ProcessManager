@@ -27,6 +27,7 @@ class Scheduler:
         self.unsorted_task_queue = []
         self.sorted_task_queue = []
         self.task_dict = {}
+        self.crashed = []
 
         # Probably don't need mark restart anymore, but I'll keep it since I prob don't need to remove
         setup_pm_logging(config.log_dir, level=log_level, mark_restart=True)        
@@ -87,6 +88,15 @@ class Scheduler:
             for task in self.sorted_task_queue:
                 task.schedule()
 
+    def safe_monitor(self, prog):
+        try:
+            prog.monitor()
+        except Exception:
+            # record the stack and which prog failed
+            tb = traceback.format_exc()
+            logging.error(f"[{prog.name}] monitor crashed:\n{tb}")
+            self.crashed.append((prog, tb))
+
     def run(self):
 
         # Initialize scheduler.log pm_logger here.        
@@ -107,7 +117,9 @@ class Scheduler:
 
         # Instead of blindly starting all programs, spawn a monitor thread for each.
         for prog in self.programs:
-            threading.Thread(target=prog.monitor, daemon=True).start()
+            t = threading.Thread(target=lambda p=prog: self.safe_monitor(p),
+                                name=f"monitor-{prog.name}", daemon=True)
+            t.start()
 
         self.schedule_tasks()
         try:

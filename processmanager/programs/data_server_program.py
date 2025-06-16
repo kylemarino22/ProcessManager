@@ -53,8 +53,8 @@ class DataServerProgram(BaseProgram):
                 # Send SIGINT to the process group to simulate a Ctrl+C
                 os.killpg(os.getpgid(pid), signal.SIGINT)
                 # Optionally, wait for the process to exit gracefully
-                self.job_logger.info(f"Waiting for Data Server Program to terminate...")
-                time.sleep(60)
+                self.job_logger.info(f"Waiting 5s for Data Server Program to terminate...")
+                time.sleep(5)
                 self.job_logger.info(f"Data Server Program terminated gracefully with SIGINT.")
             except Exception as e:
                 self.job_logger.error(f"Error stopping Data Server Program '{self.name}', pid: {pid}: {e}")

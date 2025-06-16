@@ -66,7 +66,20 @@
         "type": "task",
         "name": "update-sampled-contracts",
         "main_path" : "/home/kyle/ProcessManager/processmanager/tasks/update_sampled_contracts.py",
-        "start": "10:19 am pst"
+        "start": "07:00 am pst",
+        "run_on_complete": ["update-fx-data"]
+
+    },
+    {
+        "type": "task",
+        "name": "update-fx-data",
+        "main_path" : "/home/kyle/ProcessManager/processmanager/tasks/update_fx_prices.py",
+        "run_on_complete": ["download-asia-prices"]
+    },
+    {
+        "type": "task",
+        "name": "download-asia-prices",
+        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_asia_prices.py"
     }
 
     ]

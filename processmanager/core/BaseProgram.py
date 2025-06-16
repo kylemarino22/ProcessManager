@@ -113,12 +113,12 @@ class BaseProgram(Job):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             result = func(self, *args, **kwargs)
-            status = {
-                "pid": 0,
-                "time_started": None,
-                "num_retries": self.retries,
-                "status": "stopped"
-            }
+            status = self.read_status()
+            status["pid"] = 0
+            status["time_started"] = None
+            status["num_retries"] = self.retries
+            status["status"] = "stopped"
+            
             self.write_status(status)
             return result
         return wrapper
@@ -168,7 +168,7 @@ class BaseProgram(Job):
                 continue
 
             if self.monitor_func():
-                self.job_logger.warning(f"Program '{self.name}' needs restart.")
+                self.job_logger.warning(f"Monitor: Program '{self.name}' needs restart.")
                 if not self.keep_alive:
                     self.job_logger.info(f"Keep alive flag is false for '{self.name}'. Ending monitor loop.")
                     break

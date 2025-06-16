@@ -148,8 +148,8 @@ def stop_program(program_name, config: Config):
         # Instantiate the program using its config.
         prog = cls(prog_sched, config)
 
-        prog.stop()
         prog.disable_restart(True)
+        prog.stop()
         pm_logger.info(f"Program '{program_name}' stopped and disable_restart set to True.")
 
     except Exception as e:
