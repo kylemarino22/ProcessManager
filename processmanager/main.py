@@ -20,3 +20,4 @@ import logging
 if __name__ == '__main__':
     scheduler = Scheduler(config, logging.INFO)
     scheduler.run()
+

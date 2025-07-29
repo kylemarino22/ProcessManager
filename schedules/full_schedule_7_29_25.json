@@ -1,0 +1,57 @@
+{
+    "schedules": [
+
+        {
+            "type": "program",
+            "name": "nas-monitor",
+            "program_class": "processmanager.programs.nas_program.NASProgram",
+            "keep_alive": true,
+            "check_alive_freq": "10 m",
+            "max_retries": 10
+        },
+        {
+            "type": "program",
+            "name": "tws",
+            "program_class": "processmanager.programs.tws_program.TWS_Program",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999
+        },
+        {
+            "type": "program",
+            "name": "data-server",
+            "program_class": "processmanager.programs.data_server_program.DataServerProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 10
+        }, 
+        {
+            "type": "program",
+            "name": "mongo-daemon",
+            "program_class": "processmanager.programs.mongo_program.MongoProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 10
+        },
+
+    {
+            "type": "program",
+            "name": "orchestrator",
+            "program_class": "processmanager.programs.orchestrator.OrchestratorProgram",
+            "keep_alive": true,
+            "check_alive_freq": "10 m",
+            "max_retries": 10
+        },
+
+        {
+            "type": "task",
+            "name": "do-backups",
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python", 
+                "/home/kyle/ProcessManager/processmanager/tasks/backup_and_reboot.py"
+            ],
+            "start": "11:59 pm pst"
+        }
+
+    ]
+  }

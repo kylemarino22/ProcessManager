@@ -1,86 +1,107 @@
 {
     "schedules": [
 
-    {
-        "type": "program",
-        "name": "nas-monitor",
-        "program_class": "processmanager.programs.nas_program.NASProgram",
-        "keep_alive": true,
-        "check_alive_freq": "10 m",
-        "max_retries": 10
-    },
-    {
-        "type": "program",
-        "name": "tws",
-        "program_class": "processmanager.programs.tws_program.TWS_Program",
-        "keep_alive": true,
-        "check_alive_freq": "1 m",
-        "max_retries": 9999999
-    },
-    {
-        "type": "program",
-        "name": "data-server",
-        "program_class": "processmanager.programs.data_server_program.DataServerProgram",
-        "keep_alive": true,
-        "check_alive_freq": "1 m",
-        "max_retries": 10
-    }, 
-    {
-        "type": "program",
-        "name": "mongo-daemon",
-        "program_class": "processmanager.programs.mongo_program.MongoProgram",
-        "keep_alive": true,
-        "check_alive_freq": "1 m",
-        "max_retries": 10
-    },
+        {
+            "type": "program",
+            "name": "nas-monitor",
+            "program_class": "processmanager.programs.nas_program.NASProgram",
+            "keep_alive": true,
+            "check_alive_freq": "10 m",
+            "max_retries": 10
+        },
+        {
+            "type": "program",
+            "name": "tws",
+            "program_class": "processmanager.programs.tws_program.TWS_Program",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999
+        },
+        {
+            "type": "program",
+            "name": "data-server",
+            "program_class": "processmanager.programs.data_server_program.DataServerProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 10
+        }, 
+        {
+            "type": "program",
+            "name": "mongo-daemon",
+            "program_class": "processmanager.programs.mongo_program.MongoProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 10
+        },
 
 
-    {
-        "type": "task",
-        "name": "do-backups",
-        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/backup_and_reboot.py",
-        "start": "11:59 pm pst"
-    },
+        {
+            "type": "task",
+            "name": "do-backups",
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python", 
+                "/home/kyle/ProcessManager/processmanager/tasks/backup_and_reboot.py"
+            ],
+            "start": "11:59 pm pst"
+        },
 
 
-    {
-        "type": "task",
-        "name": "update-strategy-allocation",
-        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_strategy_capital.py",
-        "start": "00:45 am pst"
-    },
-    {
-        "type": "task",
-        "name": "update-total-capital",
-        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_total_capital.py",
-        "start": "00:45 am pst",
-        "freq": "1 h"
-    },
-    {
-        "type": "task",
-        "name": "auto-roll", 
-        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/auto_roll.py",
-        "start": "00:50 am pst"
-    },
-    {
-        "type": "task",
-        "name": "update-sampled-contracts",
-        "main_path" : "/home/kyle/ProcessManager/processmanager/tasks/update_sampled_contracts.py",
-        "start": "07:00 am pst",
-        "run_on_complete": ["update-fx-data"]
+        {
+            "type": "task",
+            "name": "update-strategy-allocation",
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python", 
+                "/home/kyle/ProcessManager/processmanager/tasks/update_strategy_capital.py"
+            ],
+            "start": "00:45 am pst"
+        },
+        {
+            "type": "task",
+            "name": "update-total-capital",
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
+                "/home/kyle/ProcessManager/processmanager/tasks/update_total_capital.py"
+            ],
+            "start": "00:45 am pst",
+            "freq": "1 h"
+        },
+        {
+            "type": "task",
+            "name": "auto-roll", 
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
+                "/home/kyle/ProcessManager/processmanager/tasks/auto_roll.py"
+            ],
+            "start": "00:50 am pst"
+        },
+        {
+            "type": "task",
+            "name": "update-sampled-contracts",
+            "cmd" : [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
+                "/home/kyle/ProcessManager/processmanager/tasks/update_sampled_contracts.py"
+            ],
+            "start": "07:00 am pst",
+            "run_on_complete": ["update-fx-data"]
 
-    },
-    {
-        "type": "task",
-        "name": "update-fx-data",
-        "main_path" : "/home/kyle/ProcessManager/processmanager/tasks/update_fx_prices.py",
-        "run_on_complete": ["download-asia-prices"]
-    },
-    {
-        "type": "task",
-        "name": "download-asia-prices",
-        "main_path": "/home/kyle/ProcessManager/processmanager/tasks/update_asia_prices.py"
-    }
-
+        },
+        {
+            "type": "task",
+            "name": "update-fx-data",
+            "cmd" : [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
+                "/home/kyle/ProcessManager/processmanager/tasks/update_fx_prices.py"
+            ],
+            "run_on_complete": ["download-asia-prices"]
+        },
+        {
+            "type": "task",
+            "name": "update-asia-prices",
+            "cmd": [
+                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
+                "/home/kyle/ProcessManager/processmanager/tasks/update_prices_for_zone.py",
+                "ASIA"
+            ]
+        }
     ]
   }

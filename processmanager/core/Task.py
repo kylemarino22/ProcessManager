@@ -22,15 +22,15 @@ class Task(Job):
         
         super().__init__(schedule, config) 
 
-        self.main_path = schedule.get('main_path')  # path to a standalone .py file
-        if not self.main_path:
-            self.job_logger.error(f"Missing 'main_path' for task '{self.name}'")
-        else:
-            # Optional: verify file exists on init
-            try:
-                Path(self.main_path).resolve(strict=True)
-            except Exception:
-                self.job_logger.error(f"Cannot find main_path '{self.main_path}' for task '{self.name}'")
+        self.cmd = schedule.get('cmd')  # path to a standalone .py file
+        # if not self.main_path:
+        #     self.job_logger.error(f"Missing 'main_path' for task '{self.name}'")
+        # else:
+        #     # Optional: verify file exists on init
+        #     try:
+        #         Path(self.main_path).resolve(strict=True)
+        #     except Exception:
+        #         self.job_logger.error(f"Cannot find main_path '{self.main_path}' for task '{self.name}'")
 
         self.start_time_str = schedule.get('start')
         self.freq_str = schedule.get('freq', None)
@@ -155,8 +155,8 @@ class Task(Job):
         """
         def _worker():
             # 1) Build the subprocess command
-            python_exe = sys.executable
-            cmd = [python_exe, str(self.main_path)]
+            # python_exe = sys.executable
+            cmd = self.cmd
 
             # 2) Open the log file in append mode
             try:
