@@ -18,6 +18,7 @@ class TWS_Program(BaseProgram):
         super().__init__(schedule, config)
         # Override the monitor function with a custom one.
         self.monitor_func = self.custom_monitor
+        self.is_down = True
 
     @BaseProgram.record_start
     def start(self):
@@ -87,39 +88,31 @@ class TWS_Program(BaseProgram):
             self.data = dataBlob()
             self.job_logger.debug("Creating IB conn through dataBroker ...")
 
-            # 3) **Run dataBroker(...) with a 3s timeout on the same loop**.
-            #    This assumes that dataBroker(...) is defined as:
-            #        async def dataBroker(data_blob): ...
-            #
-            #    If dataBroker is NOT already async, you’d first have to wrap it in a coroutine.
-            #
-
             broker_data = dataBroker(self.data)
             self.job_logger.debug("Created data broker")
             
-            # coro = dataBroker(self.data)
-            # try:
-            #     broker_data = loop.run_until_complete(
-            #         asyncio.wait_for(coro, timeout=3.0)
-            #     )
-            #     self.job_logger.debug("[TWS monitor] Fetching broker data succeeded")
-            # except asyncio.TimeoutError:
-            #     self.job_logger.error("[TWS monitor] dataBroker() timed out after 3 seconds")
-            #     return True   # signal “failed/timeout → restart needed”
-            # except Exception as exc:
-            #     self.job_logger.error(f"[TWS monitor] dataBroker raised: {exc}")
-            #     return True
-
-            # 4) If we got here, broker_data is available.
             total_capital = broker_data.get_total_capital_value_in_base_currency()
 
-            #    Disconnect from IB cleanly
             self.data.close()
 
             self.job_logger.debug(f"IB online. Total capital: {total_capital}")
 
-            return False  # no restart needed
+            if self.is_down:
+                self.is_down = False
+                return "NOTIFY_SUCCESS"
+
+            return "SUCCESS"  # no restart needed
 
         except Exception as e:
             self.job_logger.error(f"Error fetching broker data: {e}")
-            return True
+
+            # Only notify on true failures
+            # What's a true failure?
+            # - Could compare with last update? If we fail > 3 times?
+            # - Could notify when it goes down? And then when it comes back up? 
+
+            if not self.is_down:
+               self.is_down = True
+               return "RESTART"
+            
+            return "SILENT_RESTART"

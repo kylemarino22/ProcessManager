@@ -59,7 +59,7 @@ class BaseProgram(Job):
         else:
             pid_running = False
 
-        return pid_running
+        return "SUCCESS" if pid_running else "RESTART"
 
     def disable_restart(self, bool):
         status = self.read_status()
@@ -167,21 +167,32 @@ class BaseProgram(Job):
                 time.sleep(self.check_alive_freq)
                 continue
 
-            if self.monitor_func():
+            status = self.monitor_func()
+
+            if status in ["RESTART", "SILENT_RESTART"]:
                 self.job_logger.warning(f"Monitor: Program '{self.name}' needs restart.")
+
                 if not self.keep_alive:
                     self.job_logger.info(f"Keep alive flag is false for '{self.name}'. Ending monitor loop.")
                     break
+
                 self.retries += 1
                 if self.retries <= self.max_retries:
                     self.job_logger.info(f"Restarting program '{self.name}', attempt {self.retries}.")
                     self.start()
-                    self.notify_restart(additional_info="Restarted by monitor loop.")
+
+                    if status == "RESTART":
+                        self.notify_down(additional_info="")
+
                 else:
                     self.job_logger.error(f"Max retries reached for '{self.name}'. No further attempts will be made.")
                     self.notify_failure(additional_info="Exceeded max retries.")
                     break
+
             else:
+                if status == "NOTIFY_SUCCESS":
+                    self.notify_up(additional_info="")
+                    
                 self.job_logger.debug(f"Program '{self.name}' is running fine.")
                 self.retries = 0
 

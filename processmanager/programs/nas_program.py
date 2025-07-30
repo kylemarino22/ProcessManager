@@ -68,10 +68,10 @@ class NASProgram(BaseProgram):
             self.job_logger.debug(f"NASProgram.custom_monitor: Directories found in /mnt/nas: {dirs}")
             if len(dirs) < 2:
                 self.job_logger.warning("NAS mount check failed: fewer than 2 directories found. Attempting restart.")
-                return True
+                return "RESTART"
             else:
                 self.job_logger.debug("NAS mount appears healthy.")
-                return False
+                return "SUCCESS"
         except Exception as e:
             self.job_logger.error(f"Error checking NAS mount: {e}")
-            return True
+            return "RESTART"

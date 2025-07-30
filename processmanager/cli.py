@@ -65,7 +65,9 @@ def list_status(config: Config):
                 print(f"Running {name} monitor", end="\r", flush=True)
                 # logging.disable(logging.CRITICAL + 1)
 
-                is_stopped = prog.custom_monitor()
+                status = prog.custom_monitor()
+
+                is_stopped = True if status in ["RESTART", "SILENT_RESTART"] else False
 
                 # logging.disable(logging.NOTSET)
                 program_status = "stopped" if is_stopped else "running"

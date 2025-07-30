@@ -65,7 +65,7 @@ class MongoProgram(BaseProgram):
             client = d.mongo_db.client
             client.admin.command('ping')
             self.job_logger.debug("Mongo monitor check succeeded.")
-            return False
+            return "SUCCESS"
         except errors.ServerSelectionTimeoutError as e:
             self.job_logger.error(f"Mongo monitor check failed: {e}")
-            return True
+            return "RESTART"

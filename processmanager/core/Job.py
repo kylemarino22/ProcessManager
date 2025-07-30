@@ -85,16 +85,27 @@ class Job(ABC):
             return None
 
             
-    def notify_restart(self, additional_info=""):
+    def notify_down(self, additional_info=""):
         """
         Notifies via email that the script has died and was successfully restarted.
         """
-        subject = f"Script Restarted: {self.name}"
-        body = f"The script '{self.name}' has died and was successfully restarted \
+        subject = f"Script Down: {self.name}"
+        body = f"The script '{self.name}' has died \
             at {datetime.now().isoformat(sep=' ', timespec='seconds')}.\n"
         if additional_info:
             body += f"\nAdditional Info: {additional_info}"
         send_mail_msg(body, subject)
+
+    def notify_up(self, additional_info=""):
+        """
+        Notifies via email that the is back up.
+        """
+        subject = f"Script Up: {self.name}"
+        body = f"The script '{self.name}' is back up \
+            at {datetime.now().isoformat(sep=' ', timespec='seconds')}.\n"
+        if additional_info:
+            body += f"\nAdditional Info: {additional_info}"
+        send_mail_msg(body, subject)        
 
     def notify_failure(self, additional_info=""):
         """

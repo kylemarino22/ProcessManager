@@ -88,6 +88,6 @@ class DataServerProgram(BaseProgram):
         except Exception as e:
             self.job_logger.error(f"[Client] Error connecting to data server: {e}")
             self.job_logger.debug("Attempting restart of data server.")
-            return True
+            return "RESTART"
 
-        return False
+        return "SUCCESS"
