@@ -1,17 +1,10 @@
 # tws_program.py
 from ..core.BaseProgram import BaseProgram
-from sysdata.data_blob import dataBlob
-from sysproduction.data.broker import dataBroker
 from ..core.utils import check_ib_valid_time, list_and_kill_process
 from datetime import datetime
-import json
 import os
 import subprocess
-import time
-import threading
 from ..config import Config
-import concurrent.futures
-
 
 class TWS_Program(BaseProgram):
     def __init__(self, schedule, config: Config):
@@ -30,21 +23,23 @@ class TWS_Program(BaseProgram):
         if not check_ib_valid_time():
             self.job_logger.info("Current time is not valid for starting TWS.")
             return
-        # Kill any existing IB-related processes.
+
         list_and_kill_process("ibcstart.sh")
         list_and_kill_process("xterm")
+
         try:
             command = f"nohup /opt/ibc/twsstart.sh >> {self.log_file} 2>&1 &"
+
             self.process = subprocess.Popen(
                 ["bash", "-c", command],
-                preexec_fn=os.setsid
+                preexec_fn=os.setsid,
             )
             self.job_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
             return self.process.pid
+
         except Exception as e:
             self.job_logger.error(f"Failed to start TWS program '{self.name}': {e}")
             return None
-
 
     @BaseProgram.record_stop
     def stop(self):
@@ -64,55 +59,52 @@ class TWS_Program(BaseProgram):
             self.job_logger.error(f"Error stopping TWS program '{self.name}': {e}")
 
     def custom_monitor(self):
-        """
-        Custom monitoring function for the TWS program.
-        Calls the base default monitor and adds additional checks.
-        Returns True if the program should be restarted.
-        """
-
         import asyncio
 
-        # 1) Get or create the asyncio loop for this thread.
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+        
+        from ib_insync import IB
 
-        # 2) If outside IB hours, indicate no restart now.
         if not check_ib_valid_time():
             self.job_logger.debug("Outside IB operating hours, stopping process.")
-            return False  # "no restart needed until hours resume"
+            return False
 
         try:
-            self.data = dataBlob()
-            self.job_logger.debug("Creating IB conn through dataBroker ...")
+            ib = IB()
 
-            broker_data = dataBroker(self.data)
-            self.job_logger.debug("Created data broker")
-            
-            total_capital = broker_data.get_total_capital_value_in_base_currency()
+            host = getattr(self.config, "ib_host", "127.0.0.1")
+            port = getattr(self.config, "ib_port", 7497)
+            client_id = getattr(self.config, "ib_client_id", 987)
+            timeout = getattr(self.config, "ib_timeout", 5)
 
-            self.data.close()
+            ib.connect(host, port, clientId=client_id, timeout=timeout)
 
-            self.job_logger.debug(f"IB online. Total capital: {total_capital}")
+            summary = ib.accountSummary()
+            netliq = next((x for x in summary if x.tag == "NetLiquidation"), None) \
+                    or next((x for x in summary if x.tag == "TotalCashValue"), None)
+
+            if netliq is None:
+                raise RuntimeError("Connected to IB but accountSummary missing NetLiquidation/TotalCashValue")
+
+            self.job_logger.debug(f"IB online. {netliq.tag}={netliq.value} {netliq.currency}")
+
+            ib.disconnect()
 
             if self.is_down:
                 self.is_down = False
                 return "NOTIFY_SUCCESS"
 
-            return "SUCCESS"  # no restart needed
+            return "SUCCESS"
 
         except Exception as e:
             self.job_logger.error(f"Error fetching broker data: {e}")
 
-            # Only notify on true failures
-            # What's a true failure?
-            # - Could compare with last update? If we fail > 3 times?
-            # - Could notify when it goes down? And then when it comes back up? 
-
             if not self.is_down:
-               self.is_down = True
-               return "RESTART"
-            
+                self.is_down = True
+                return "RESTART"
+
             return "SILENT_RESTART"

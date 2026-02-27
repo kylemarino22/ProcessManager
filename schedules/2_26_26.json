@@ -1,0 +1,12 @@
+{
+    "schedules": [
+        {
+            "type": "program",
+            "name": "tws",
+            "program_class": "processmanager.programs.tws_program.TWS_Program",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999
+        }
+    ]
+  }
