@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from .logger_setup import get_logger
 from ..config import Config
 
-from syslogdiag.emailing import send_mail_msg 
+from .emailing import send_mail_msg
 
 class Job(ABC):
     

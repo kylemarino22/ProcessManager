@@ -1,1 +1,1 @@
-{"pid": 2028277, "time_started": "2025-07-29 23:45:11", "num_retries": 1, "status": "running", "last_checkup": "2025-07-30 13:11:24"}
+{"pid": 0, "time_started": null, "num_retries": 0, "status": "stopped", "disable_restart": true}

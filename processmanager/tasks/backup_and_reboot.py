@@ -43,39 +43,39 @@ def backup():
     except Exception as e:
         logger.error("Error running Minecraft backup script: %s", e)
 
-    # Backup PST data.
-    logger.info("Backing up PST data...")
-    try:
-        backup_db_to_csv()
-        logger.info("Database-to-CSV backup completed.")
-    except Exception as e:
-        logger.error("Error during database-to-CSV backup: %s", e)
+    # # Backup PST data.
+    # logger.info("Backing up PST data...")
+    # try:
+    #     backup_db_to_csv()
+    #     logger.info("Database-to-CSV backup completed.")
+    # except Exception as e:
+    #     logger.error("Error during database-to-CSV backup: %s", e)
 
-    try:
-        backup_mongo_data_as_dump()
-        logger.info("MongoDB dump backup completed.")
-    except Exception as e:
-        logger.error("Error during MongoDB dump backup: %s", e)
+    # try:
+    #     backup_mongo_data_as_dump()
+    #     logger.info("MongoDB dump backup completed.")
+    # except Exception as e:
+    #     logger.error("Error during MongoDB dump backup: %s", e)
 
-    try:
-        backup_state_files()
-        logger.info("State files backup completed.")
-    except Exception as e:
-        logger.error("Error during state files backup: %s", e)
+    # try:
+    #     backup_state_files()
+    #     logger.info("State files backup completed.")
+    # except Exception as e:
+    #     logger.error("Error during state files backup: %s", e)
 
-    try:
-        backup_parquet_data_to_remote()
-        logger.info("Parquet data remote backup completed.")
-    except Exception as e:
-        logger.error("Error during parquet data remote backup: %s", e)
+    # try:
+    #     backup_parquet_data_to_remote()
+    #     logger.info("Parquet data remote backup completed.")
+    # except Exception as e:
+    #     logger.error("Error during parquet data remote backup: %s", e)
 
-    # Run PST cleaners.
-    logger.info("Running PST cleaners...")
-    try:
-        clean_truncate_backtest_states()
-        logger.info("Backtest states cleaned/truncated.")
-    except Exception as e:
-        logger.error("Error during backtest state cleanup: %s", e)
+    # # Run PST cleaners.
+    # logger.info("Running PST cleaners...")
+    # try:
+    #     clean_truncate_backtest_states()
+    #     logger.info("Backtest states cleaned/truncated.")
+    # except Exception as e:
+    #     logger.error("Error during backtest state cleanup: %s", e)
 
     # try:
     #     clean_truncate_echo_files()
