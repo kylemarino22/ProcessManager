@@ -13,7 +13,6 @@ import threading
 import traceback
 import hashlib
 from ..config import Config
-import syslogging
 import logging
 
 class Scheduler:
