@@ -23,14 +23,6 @@ class Task(Job):
         super().__init__(schedule, config) 
 
         self.cmd = schedule.get('cmd')  # path to a standalone .py file
-        # if not self.main_path:
-        #     self.job_logger.error(f"Missing 'main_path' for task '{self.name}'")
-        # else:
-        #     # Optional: verify file exists on init
-        #     try:
-        #         Path(self.main_path).resolve(strict=True)
-        #     except Exception:
-        #         self.job_logger.error(f"Cannot find main_path '{self.main_path}' for task '{self.name}'")
 
         self.start_time_str = schedule.get('start')
         self.freq_str = schedule.get('freq', None)
@@ -112,6 +104,11 @@ class Task(Job):
         Schedule the task to run at the next appropriate time based on its start time,
         frequency, and allowed days. When it's time, call run_threaded().
         """
+        # Guard clause: Dependent tasks with no start time don't need scheduling logic
+        if not self.start_time_str:
+            self.job_logger.debug(f"Task '{self.name}' has no start time; skipping automatic scheduling.")
+            return
+
         now = datetime.now()
         candidate_date = now.date()
         start_dt, stop_dt = self.get_day_window(candidate_date)
@@ -163,7 +160,6 @@ class Task(Job):
         """
         def _worker():
             # 1) Build the subprocess command
-            # python_exe = sys.executable
             cmd = self.cmd
 
             # 2) Open the log file in append mode
@@ -203,15 +199,18 @@ class Task(Job):
 
             self.write_status(status)
 
-            # 6) Now schedule the next run (independent of how long the subprocess took)
-            self._schedule_next_run()
-
-            # 7) Trigger any dependent tasks
+            # 6) Trigger any dependent tasks once completed
             self._trigger_dependents()
 
+        # Start the worker thread
         thread = threading.Thread(target=_worker, name=f"task-{self.name}")
         thread.daemon = True
         thread.start()
+        
+        # 7) Now schedule the next run IMMEDIATELY and independently of how long the subprocess takes.
+        # This prevents the scheduler from stalling if the subprocess hangs.
+        self._schedule_next_run()
+
         return thread
 
 
@@ -220,6 +219,10 @@ class Task(Job):
             Calculates the next run datetime snapped to the frequency grid 
             to prevent execution-time drift. Then starts a Timer.
             """
+            # Guard clause: Do not attempt to schedule next run if there is no start_time defined
+            if not self.start_time_str:
+                return
+
             now = datetime.now()
             candidate_date = now.date()
             start_dt, stop_dt = self.get_day_window(candidate_date)
