@@ -23,14 +23,6 @@ class Task(Job):
         super().__init__(schedule, config) 
 
         self.cmd = schedule.get('cmd')  # path to a standalone .py file
-        # if not self.main_path:
-        #     self.job_logger.error(f"Missing 'main_path' for task '{self.name}'")
-        # else:
-        #     # Optional: verify file exists on init
-        #     try:
-        #         Path(self.main_path).resolve(strict=True)
-        #     except Exception:
-        #         self.job_logger.error(f"Cannot find main_path '{self.main_path}' for task '{self.name}'")
 
         self.start_time_str = schedule.get('start')
         self.freq_str = schedule.get('freq', None)
@@ -112,6 +104,11 @@ class Task(Job):
         Schedule the task to run at the next appropriate time based on its start time,
         frequency, and allowed days. When it's time, call run_threaded().
         """
+        # Guard clause: Dependent tasks with no start time don't need scheduling logic
+        if not self.start_time_str:
+            self.job_logger.debug(f"Task '{self.name}' has no start time; skipping automatic scheduling.")
+            return
+
         now = datetime.now()
         candidate_date = now.date()
         start_dt, stop_dt = self.get_day_window(candidate_date)
@@ -125,8 +122,11 @@ class Task(Job):
 
         if freq_seconds and start_dt <= now < stop_dt:
             elapsed = (now - start_dt).total_seconds()
-            n = math.ceil(elapsed / freq_seconds)
+            
+            # --- FIX: Use floor + 1 here to match _schedule_next_run and prevent drift ---
+            n = math.floor(elapsed / freq_seconds) + 1
             next_run = start_dt + timedelta(seconds=n * freq_seconds)
+            
             if next_run > stop_dt:
                 candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
                 start_dt, stop_dt = self.get_day_window(candidate_date)
@@ -134,12 +134,17 @@ class Task(Job):
         elif now < start_dt:
             next_run = start_dt
         else:
-            # No frequency specified or current time ≥ stop time
+            # No frequency specified or current time >= stop time
             candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
             start_dt, stop_dt = self.get_day_window(candidate_date)
             next_run = start_dt
 
         delay = (next_run - datetime.now()).total_seconds()
+        
+        # Failsafe
+        if delay < 0:
+            delay = 1.0
+            
         self.job_logger.info(
             f"Scheduling task '{self.name}' to run in {delay:.0f} seconds (next run at {next_run})"
         )
@@ -155,7 +160,6 @@ class Task(Job):
         """
         def _worker():
             # 1) Build the subprocess command
-            # python_exe = sys.executable
             cmd = self.cmd
 
             # 2) Open the log file in append mode
@@ -195,59 +199,92 @@ class Task(Job):
 
             self.write_status(status)
 
-            # 6) Now schedule the next run (independent of how long the subprocess took)
-            self._schedule_next_run()
-
-            # 7) Trigger any dependent tasks
+            # 6) Trigger any dependent tasks once completed
             self._trigger_dependents()
 
+        # Start the worker thread
         thread = threading.Thread(target=_worker, name=f"task-{self.name}")
         thread.daemon = True
         thread.start()
+        
+        # 7) Now schedule the next run IMMEDIATELY and independently of how long the subprocess takes.
+        # This prevents the scheduler from stalling if the subprocess hangs.
+        self._schedule_next_run()
+
         return thread
 
 
     def _schedule_next_run(self):
-        """
-        Exactly the same logic you already had to figure out the next run datetime.
-        Then start a Timer calling run_threaded().
-        """
-        now = datetime.now()
-        candidate_date = now.date()
-        start_dt, stop_dt = self.get_day_window(candidate_date)
+            """
+            Calculates the next run datetime snapped to the frequency grid 
+            to prevent execution-time drift. Then starts a Timer.
+            """
+            # Guard clause: Do not attempt to schedule next run if there is no start_time defined
+            if not self.start_time_str:
+                return
 
-        if self.freq_str:
-            freq_seconds = self.parse_frequency(self.freq_str)
-            next_run = now + timedelta(seconds=freq_seconds)
-            if now >= stop_dt or next_run > stop_dt:
-                candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
-                start_dt, stop_dt = self.get_day_window(candidate_date)
-                next_run = start_dt
-        else:
-            if now >= start_dt:
-                candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
+            now = datetime.now()
+            candidate_date = now.date()
             start_dt, stop_dt = self.get_day_window(candidate_date)
-            next_run = start_dt
 
-        delay = (next_run - datetime.now()).total_seconds()
-        self.job_logger.debug(
-            f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})"
-        )
-        timer = threading.Timer(delay, self.run_threaded)
-        timer.daemon = True
-        timer.start()
+            if self.freq_str:
+                freq_seconds = self.parse_frequency(self.freq_str)
+                
+                # Align the next run to the exact frequency grid relative to start_dt
+                if start_dt <= now < stop_dt:
+                    elapsed = (now - start_dt).total_seconds()
+                    
+                    # Floor + 1 ensures we always target the *strictly next* grid interval
+                    n = math.floor(elapsed / freq_seconds) + 1
+                    next_run = start_dt + timedelta(seconds=n * freq_seconds)
+                    
+                    # If the grid calculation pushes us past stop_dt, rollover to next day
+                    if next_run > stop_dt:
+                        candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
+                        start_dt, stop_dt = self.get_day_window(candidate_date)
+                        next_run = start_dt
+                        
+                else:
+                    # If we are past stop_dt (or before start_dt), find the next allowed start_dt
+                    if now >= stop_dt:
+                        candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
+                        start_dt, stop_dt = self.get_day_window(candidate_date)
+                    next_run = start_dt
+                    
+            else:
+                if now >= start_dt:
+                    candidate_date = self.get_next_allowed_date(candidate_date, days_ahead=1)
+                    start_dt, stop_dt = self.get_day_window(candidate_date)
+                next_run = start_dt
+
+            delay = (next_run - datetime.now()).total_seconds()
+            
+            # Failsafe: if delay is somehow negative, run in 1 second
+            if delay < 0:
+                delay = 1.0 
+                
+            self.job_logger.debug(
+                f"Rescheduling task '{self.name}' to run again in {delay:.0f} seconds (next run at {next_run})"
+            )
+            timer = threading.Timer(delay, self.run_threaded)
+            timer.daemon = True
+            timer.start()
 
     def _trigger_dependents(self):
         for dep in self.run_on_complete:
             self.job_logger.debug(f"Task '{self.name}' completed, triggering '{dep}'")
-            dependent = get_job_sched(dep, "task", self.config.schedule_file)
+            
+            # This returns a raw dictionary from the JSON
+            dependent_config = get_job_sched(dep, "task", self.config.schedule_file)
 
-            if dependent:
-                if not dependent.start_time_str:
+            if dependent_config:
+                dependent_task = Task(dependent_config, self.config)
+
+                if not dependent_task.start_time_str:
                     self.job_logger.debug(f"Dependent '{dep}' has no start time; running immediately.")
-                    threading.Thread(target=dependent.run_threaded, daemon=True).start()
+                    threading.Thread(target=dependent_task.run_threaded, daemon=True).start()
                 else:
                     self.job_logger.debug(f"Dependent '{dep}' has a start time; scheduling it.")
-                    dependent.schedule()
+                    dependent_task.schedule()
             else:
                 self.job_logger.error(f"Dependent task '{dep}' not found in scheduler.")

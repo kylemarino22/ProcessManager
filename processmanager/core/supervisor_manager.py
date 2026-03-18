@@ -3,7 +3,7 @@ import subprocess
 def reload_supervisor():
     commands = [
         ["sudo", "supervisorctl", "update"],
-        ["sudo", "supervisorctl", "restart", "scheduler"],
+        ["sudo", "supervisorctl", "restart", "processmanager"],
     ]
 
     for cmd in commands:

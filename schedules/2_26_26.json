@@ -1,0 +1,48 @@
+{
+    "schedules": [
+        {
+            "type": "program",
+            "name": "tws",
+            "program_class": "processmanager.programs.tws_program.TWS_Program",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999
+        },
+        {
+            "type": "task",
+            "name": "eod-processor",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/pipelines/eod_processor.py"
+            ],
+            "start": "05:30 pm pst",
+            "days": ["mon", "tue", "wed", "thu", "fri"],
+            "run_on_complete": [
+                "ib-short-costs-ingest"
+            ]
+        },
+        {
+            "type": "task",
+            "name": "ib-short-costs-ingest",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/sctrading/core/ib_short_stock.py",
+                "-ingest"
+            ],
+            "days": ["mon", "tue", "wed", "thu", "fri"]
+        },
+        {
+            "type": "task",
+            "name": "ib-short-costs-snapshot",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/sctrading/core/ib_short_stock.py",
+                "-snapshot"
+            ],
+            "start": "04:00 am pst",
+            "stop": "05:00 pm pst",
+            "freq": "5 m",
+            "days": ["mon", "tue", "wed", "thu", "fri"]
+        }
+    ]
+  }
