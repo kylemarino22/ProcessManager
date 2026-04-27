@@ -2,15 +2,6 @@
     "schedules": [
         {
             "type": "program",
-            "name": "sctrading-webapp",
-            "program_class": "processmanager.programs.webapp_program.WebappProgram",
-            "keep_alive": true,
-            "check_alive_freq": "1 m",
-            "max_retries": 9999999,
-            "run_on_start": true
-        },
-        {
-            "type": "program",
             "name": "live-pipeline",
             "program_class": "processmanager.programs.live_pipeline_program.LivePipelineProgram",
             "keep_alive": true,

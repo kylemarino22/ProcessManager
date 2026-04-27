@@ -1,4 +1,3 @@
-#!/home/kyle/anaconda3/envs/pysystemenv/bin/python
 import argparse
 import json
 import importlib

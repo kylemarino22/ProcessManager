@@ -28,15 +28,18 @@ class Task(Job):
         self.freq_str = schedule.get('freq', None)
         self.stop_time_str = schedule.get('stop', None)
         self.run_on_complete = schedule.get('run_on_complete', [])
-        self.days = schedule.get('days', None)
 
 
     # Utility methods
     def get_target_datetime(self, time_str, date_obj):
         """
-        Convert a time string (e.g., '9:00 am') into a datetime object on the given date.
+        Convert a time string (e.g., '9:00 am ET') into a datetime object on the given date.
         """
-        parts = time_str.lower().replace('pst', '').strip().split()
+        cleaned = time_str.strip()
+        raw_parts = cleaned.split()
+        if raw_parts and raw_parts[-1].lower() in self._TZ_SUFFIXES:
+            cleaned = " ".join(raw_parts[:-1])
+        parts = cleaned.lower().split()
         time_part = parts[0]
         if ':' in time_part:
             hour_str, minute_str = time_part.split(':')
