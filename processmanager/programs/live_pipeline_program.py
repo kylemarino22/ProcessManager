@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 
 from ..config import Config
@@ -47,16 +48,14 @@ class LivePipelineProgram(BaseProgram):
     def start(self):
         self.job_logger.info(f"Starting live pipeline: {self.name}")
         try:
+            command = f"nohup docker compose -f {COMPOSE_FILE} -p {COMPOSE_PROJECT} up >> {self.log_file} 2>&1 &"
             proc = subprocess.Popen(
-                ["docker", "compose", "-f", COMPOSE_FILE, "-p", COMPOSE_PROJECT, "up", "-d"],
+                ["bash", "-c", command],
+                preexec_fn=os.setsid,
             )
-            proc.wait(timeout=60)
-            if proc.returncode == 0:
-                self.job_logger.info("docker compose up -d succeeded.")
-                return proc.pid
-            else:
-                self.job_logger.error(f"docker compose up -d failed (exit {proc.returncode}).")
-                return None
+            proc.wait(timeout=10)
+            self.job_logger.info("docker compose up started (streaming to log).")
+            return proc.pid
         except Exception as e:
             self.job_logger.error(f"Failed to start live pipeline: {e}")
             return None

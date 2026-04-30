@@ -67,6 +67,14 @@ class BaseProgram(Job):
                     self.job_logger.info(
                         f"Program {self.name} killed existing process with PID {self.pid} before starting new process."
                     )
+                    # Wait for the process to fully exit so ports and connections are released
+                    for _ in range(50):
+                        try:
+                            os.kill(self.pid, 0)
+                            time.sleep(0.1)
+                        except OSError:
+                            break
+                    time.sleep(0.1)
                 except Exception as e:
                     self.job_logger.error(
                         f"Error killing process {self.pid} for program {self.name}: {e}"
@@ -169,6 +177,13 @@ class BaseProgram(Job):
                     self.job_logger.error(f"Max retries reached for '{self.name}'. No further attempts will be made.")
                     self.notify_failure(additional_info="Exceeded max retries.")
                     break
+
+            elif status == "MAINTENANCE":
+                self.job_logger.debug(f"Program '{self.name}' is in maintenance window.")
+                current_status = self.read_status() or {}
+                current_status["status"] = "maintenance"
+                self.write_status(current_status)
+                self.retries = 0
 
             else:
                 if status == "NOTIFY_SUCCESS":

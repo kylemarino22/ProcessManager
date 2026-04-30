@@ -81,14 +81,14 @@ class TWS_Program(BaseProgram):
 
         if not check_ib_valid_time():
             self.job_logger.debug("Outside IB operating hours, stopping process.")
-            return False
+            return "MAINTENANCE"
 
         try:
             ib = IB()
 
             host = getattr(self.config, "ib_host", "127.0.0.1")
             port = getattr(self.config, "ib_port", 7497)
-            client_id = getattr(self.config, "ib_client_id", 987)
+            client_id = getattr(self.config, "ib_client_id", 11)
             timeout = getattr(self.config, "ib_timeout", 5)
 
             ib.connect(host, port, clientId=client_id, timeout=timeout)

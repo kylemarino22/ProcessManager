@@ -1,4 +1,5 @@
 import sys
+import os
 import threading
 import subprocess
 import logging
@@ -20,14 +21,15 @@ class Task(Job):
         with the programs.
         """        
         
-        super().__init__(schedule, config) 
+        super().__init__(schedule, config)
 
-        self.cmd = schedule.get('cmd')  # path to a standalone .py file
-
+        self.cmd = schedule.get('cmd')
         self.start_time_str = schedule.get('start')
         self.freq_str = schedule.get('freq', None)
         self.stop_time_str = schedule.get('stop', None)
         self.run_on_complete = schedule.get('run_on_complete', [])
+
+        self.task_log_dir = Path(config.log_dir) / self.name
 
 
     # Utility methods
@@ -165,11 +167,11 @@ class Task(Job):
             # 1) Build the subprocess command
             cmd = self.cmd
 
-            # 2) Open the log file in append mode
+            # 2) Open a fresh timestamped log file for this run
             try:
-                log_fh = open(self.log_file, "a")
+                log_fh = self._open_log_file()
             except Exception as e:
-                self.job_logger.error(f"Cannot open log file '{self.log_file}': {e}")
+                self.job_logger.error(f"Cannot open log file for '{self.name}': {e}")
                 return
 
             # 3) Launch the subprocess, redirecting stdout+stderr → log_fh
@@ -272,6 +274,22 @@ class Task(Job):
             timer = threading.Timer(delay, self.run_threaded)
             timer.daemon = True
             timer.start()
+
+    def _open_log_file(self, keep: int = 10):
+        """
+        Create a new timestamped log file under task_log_dir and return an open
+        file handle for appending. Deletes the oldest files if more than keep exist.
+        """
+        self.task_log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        log_path = self.task_log_dir / f"{ts}.log"
+        existing = sorted(self.task_log_dir.glob("*.log"))
+        for old in existing[:max(0, len(existing) - keep + 1)]:
+            try:
+                old.unlink()
+            except Exception:
+                pass
+        return open(log_path, "w")
 
     def _trigger_dependents(self):
         for dep in self.run_on_complete:

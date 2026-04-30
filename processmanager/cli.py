@@ -5,6 +5,7 @@ import os
 import sys
 import contextlib
 import logging
+import subprocess
 from pathlib import Path
 from tabulate import tabulate
 from processmanager.core.utils import load_schedules
@@ -57,29 +58,29 @@ def list_status(config: Config):
 
             pm_logger.debug(f"Program type: {type(prog)}, instance: {prog}")
 
-            # Run monitor func for program to check status
-            if hasattr(prog, "custom_monitor"):
-                # silence all output
-                # pm_logger.info(f"Running monitor for program '{name}'")
-                print(f"Running {name} monitor", end="\r", flush=True)
-                # logging.disable(logging.CRITICAL + 1)
-
-                status = prog.custom_monitor()
-
-                is_stopped = True if status in ["RESTART", "SILENT_RESTART"] else False
-
-                # logging.disable(logging.NOTSET)
-                program_status = "stopped" if is_stopped else "running"
-                pm_logger.debug(f"Program '{name}' status: {program_status}")
-            else:
-                program_status = "unknown (no custom_monitor)"
-            
-
-            status_dict = prog.read_status() 
+            status_dict = prog.read_status() or {}
 
             start_time      = status_dict.get('time_started')
             last_checkup    = status_dict.get('last_checkup')
             disable_restart = status_dict.get('disable_restart', False)
+
+            # Run monitor func for program to check status
+            if disable_restart:
+                program_status = "stopped"
+            elif hasattr(prog, "custom_monitor"):
+                print(f"Running {name} monitor", end="\r", flush=True)
+
+                status = prog.custom_monitor()
+
+                if status in ["RESTART", "SILENT_RESTART"]:
+                    program_status = "stopped"
+                elif status == "MAINTENANCE":
+                    program_status = "maintenance"
+                else:
+                    program_status = "running"
+                pm_logger.debug(f"Program '{name}' status: {program_status}")
+            else:
+                program_status = "unknown (no custom_monitor)"
 
         except Exception as e:
             print(f"Error: {e}")
@@ -179,25 +180,27 @@ def start_program(program_name, config: Config):
         pm_logger.error(f"Error starting program '{program_name}': {e}")
 
 
+def restart_program(program_name, config: Config):
+    stop_program(program_name, config)
+    import time; time.sleep(1)
+    start_program(program_name, config)
+
+
 def run_task(task_name, config: Config):
-
-    task_sched = get_job_sched(task_name, "task", config.schedule_file) 
-
+    task_sched = get_job_sched(task_name, "task", config.schedule_file)
     try:
         task = Task(task_sched, config)
-
-        pm_logger.info(f"Manually running task {task_name}")
-        t = task.run_threaded()
-        t.join()
-
+        log_fh = task._open_log_file()
+        proc = subprocess.Popen(task.cmd, stdout=log_fh, stderr=subprocess.STDOUT)
+        print(f"Started '{task_name}' with PID={proc.pid} — logging to {log_fh.name}")
     except Exception as e:
-       pm_logger.error(f"Error running task {task_name}, {e}") 
+        pm_logger.error(f"Error running task '{task_name}': {e}")
 
         
 def main():
     """Main entry point for the command-line script."""
     parser = argparse.ArgumentParser(description="Simple Process Manager CLI")
-    parser.add_argument("command", choices=["list", "stop", "start", "reload", "run"],
+    parser.add_argument("command", choices=["list", "stop", "start", "restart", "reload", "run"],
                         help="Command to perform: list program/task status, stop a program, or start a program.")
     parser.add_argument("job_name", nargs="?", default=None,
                         help="Name of the program for stop/start commands.")
@@ -228,6 +231,12 @@ def main():
             raise Exception("Error: Please specify a program name to start.")
         
         start_program(args.job_name, config)
+
+    elif args.command == "restart":
+        if args.job_name is None:
+            raise Exception("Error: Please specify a program name to restart.")
+
+        restart_program(args.job_name, config)
 
     elif args.command == "run":
         if args.job_name is None:
