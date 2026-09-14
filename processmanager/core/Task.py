@@ -207,14 +207,15 @@ class Task(Job):
             # 6) Trigger any dependent tasks once completed
             self._trigger_dependents()
 
+        # 7) Schedule the next run before launching this one. The recurring schedule is a
+        # chain of Timers, so anything that raises before this point unschedules the task
+        # for good. This also keeps the cadence independent of how long the subprocess takes.
+        self._schedule_next_run()
+
         # Start the worker thread
         thread = threading.Thread(target=_worker, name=f"task-{self.name}")
         thread.daemon = True
         thread.start()
-        
-        # 7) Now schedule the next run IMMEDIATELY and independently of how long the subprocess takes.
-        # This prevents the scheduler from stalling if the subprocess hangs.
-        self._schedule_next_run()
 
         return thread
 
