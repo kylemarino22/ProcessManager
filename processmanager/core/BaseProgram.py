@@ -7,6 +7,7 @@ import json
 import logging
 
 from datetime import datetime
+from pathlib import Path
 from abc import ABC, abstractmethod
 from .Job import Job
 from functools import wraps
@@ -32,9 +33,25 @@ class BaseProgram(Job):
         self.monitor_func = self.default_monitor
         self.retries = 0
 
+        # Override flat log_file with today's dated file in a per-program folder
+        self.log_file = self._get_program_log_path()
+
         # Restore pid from status file so monitor works correctly after a PM restart.
         self.pid = (self.read_status() or {}).get("pid") or None
 
+
+    def _get_program_log_path(self, keep: int = 7) -> str:
+        log_dir = Path(self.config.log_dir) / self.name
+        log_dir.mkdir(parents=True, exist_ok=True)
+        today = datetime.now().strftime("%Y-%m-%d")
+        log_path = log_dir / f"{today}.log"
+        existing = sorted(log_dir.glob("*.log"))
+        for old in existing[:max(0, len(existing) - keep + 1)]:
+            try:
+                old.unlink()
+            except Exception:
+                pass
+        return str(log_path)
 
     def default_monitor(self):
         if self.pid:
@@ -44,6 +61,10 @@ class BaseProgram(Job):
             except OSError:
                 self.pid = None
         return "RESTART"
+
+    def should_stop_outside_schedule(self, current_status) -> bool:
+        """True when the scheduled window has ended and this job still needs stop()."""
+        return bool(self.pid) or current_status.get("status") == "running"
 
     def disable_restart(self, bool):
         status = self.read_status()
@@ -61,6 +82,7 @@ class BaseProgram(Job):
         """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
+            self.log_file = self._get_program_log_path()
             if self.pid:
                 try:
                     os.kill(self.pid, 9)
@@ -146,13 +168,11 @@ class BaseProgram(Job):
             self.write_status(current_status)
 
             if not self.within_schedule():
-                if self.pid:
-                    try:
-                        os.kill(self.pid, 0)
-                        self.job_logger.info(f"Program '{self.name}' is outside its scheduled time. Stopping.")
-                        self.stop()
-                    except OSError:
-                        self.pid = None
+                if self.should_stop_outside_schedule(current_status):
+                    self.job_logger.info(
+                        f"Program '{self.name}' is outside its scheduled time. Stopping."
+                    )
+                    self.stop()
                 time.sleep(self.check_alive_freq)
                 continue
 
