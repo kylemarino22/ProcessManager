@@ -19,9 +19,9 @@ class LivePipelineProgram(BaseProgram):
 
     Unlike the other programs there is no long-lived child process: `up -d`
     exits once the containers are running, so the project is the handle and
-    `docker ps` is the health check. start() is a reconcile and is safe to
-    repeat; stop() is the scheduled teardown that lets the next start() pick
-    up the new EOD artifacts.
+    `docker ps` is the health check. start() is a cold start (down then up)
+    so 3:50 AM ET always reloads EOD even if leftover containers are up.
+    stop() is the 8:00 PM ET teardown.
     """
 
     def __init__(self, schedule, config: Config):
@@ -73,14 +73,22 @@ class LivePipelineProgram(BaseProgram):
     # Start / Stop
     # ------------------------------------------------------------------
 
+    def _compose(self, *args: str, timeout: int = 120) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["docker", "compose", "-f", COMPOSE_FILE, "-p", COMPOSE_PROJECT, *args],
+            timeout=timeout, capture_output=True, text=True,
+        )
+
     def start(self):
         self.log_file = self._get_program_log_path()
         self.job_logger.info(f"Starting live pipeline: {self.name}")
         try:
-            result = subprocess.run(
-                ["docker", "compose", "-f", COMPOSE_FILE, "-p", COMPOSE_PROJECT, "up", "-d"],
-                timeout=60, capture_output=True, text=True,
-            )
+            down = self._compose("down")
+            if down.returncode != 0:
+                self.job_logger.warning(
+                    f"docker compose down returned {down.returncode}: {down.stderr.strip()}"
+                )
+            result = self._compose("up", "-d")
             if result.returncode == 0:
                 self.job_logger.info("docker compose up -d complete.")
                 self._record_running()
