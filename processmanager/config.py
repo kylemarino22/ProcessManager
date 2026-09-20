@@ -9,7 +9,7 @@ class Config:
 
 # then, to instantiate:
 config = Config(
-    schedule_file=Path("/home/kyle/projects/processmanager/schedules/2_26_26.json"),
+    schedule_file=Path("/home/kyle/projects/processmanager/schedules/full_schedule.json"),
     status_dir=   Path("/home/kyle/projects/processmanager/statuses"),
     log_dir=      Path("/home/kyle/projects/processmanager/logs"),
 )

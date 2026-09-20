@@ -4,7 +4,7 @@ setup(
     name="processmanager",
     version="0.1.0",
     packages=find_packages(),         # now finds the processmanager/ folder
-    install_requires=["appdirs"],
+    install_requires=["appdirs", "tabulate"],
     entry_points={
         "console_scripts": [
             "pm = processmanager.cli:main",

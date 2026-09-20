@@ -1,13 +1,25 @@
 {
     "schedules": [
-
         {
             "type": "program",
-            "name": "nas-monitor",
-            "program_class": "processmanager.programs.nas_program.NASProgram",
+            "name": "sctrading-webapp",
+            "program_class": "processmanager.programs.webapp_program.WebappProgram",
             "keep_alive": true,
-            "check_alive_freq": "10 m",
-            "max_retries": 10
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999,
+            "run_on_start": true
+        },
+        {
+            "type": "program",
+            "name": "live-pipeline",
+            "program_class": "processmanager.programs.live_pipeline_program.LivePipelineProgram",
+            "keep_alive": true,
+            "check_alive_freq": "1 m",
+            "max_retries": 9999999,
+            "run_on_start": false,
+            "start": "9:20 AM ET",
+            "end": "4:10 PM ET",
+            "days": ["mon", "tue", "wed", "thu", "fri"]
         },
         {
             "type": "program",
@@ -18,90 +30,53 @@
             "max_retries": 9999999
         },
         {
-            "type": "program",
-            "name": "data-server",
-            "program_class": "processmanager.programs.data_server_program.DataServerProgram",
-            "keep_alive": true,
-            "check_alive_freq": "1 m",
-            "max_retries": 10
-        }, 
-        {
-            "type": "program",
-            "name": "mongo-daemon",
-            "program_class": "processmanager.programs.mongo_program.MongoProgram",
-            "keep_alive": true,
-            "check_alive_freq": "1 m",
-            "max_retries": 10
-        },
-
-
-        {
             "type": "task",
-            "name": "do-backups",
+            "name": "eod-processor",
             "cmd": [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python", 
-                "/home/kyle/ProcessManager/processmanager/tasks/backup_and_reboot.py"
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/pipelines/eod_processor.py"
             ],
-            "start": "11:59 pm pst"
-        },
-
-
-        {
-            "type": "task",
-            "name": "update-strategy-allocation",
-            "cmd": [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python", 
-                "/home/kyle/ProcessManager/processmanager/tasks/update_strategy_capital.py"
-            ],
-            "start": "00:45 am pst"
-        },
-        {
-            "type": "task",
-            "name": "update-total-capital",
-            "cmd": [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
-                "/home/kyle/ProcessManager/processmanager/tasks/update_total_capital.py"
-            ],
-            "start": "00:45 am pst",
-            "freq": "1 h"
-        },
-        {
-            "type": "task",
-            "name": "auto-roll", 
-            "cmd": [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
-                "/home/kyle/ProcessManager/processmanager/tasks/auto_roll.py"
-            ],
-            "start": "00:50 am pst"
-        },
-        {
-            "type": "task",
-            "name": "update-sampled-contracts",
-            "cmd" : [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
-                "/home/kyle/ProcessManager/processmanager/tasks/update_sampled_contracts.py"
-            ],
-            "start": "07:00 am pst",
-            "run_on_complete": ["update-fx-data"]
-
-        },
-        {
-            "type": "task",
-            "name": "update-fx-data",
-            "cmd" : [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
-                "/home/kyle/ProcessManager/processmanager/tasks/update_fx_prices.py"
-            ],
-            "run_on_complete": ["download-asia-prices"]
-        },
-        {
-            "type": "task",
-            "name": "update-asia-prices",
-            "cmd": [
-                "/home/kyle/anaconda3/envs/pysystemenv/bin/python",
-                "/home/kyle/ProcessManager/processmanager/tasks/update_prices_for_zone.py",
-                "ASIA"
+            "start": "05:30 pm pst",
+            "days": ["mon", "tue", "wed", "thu", "fri"],
+            "run_on_complete": [
+                "ib-short-costs-ingest"
             ]
+        },
+        {
+            "type": "task",
+            "name": "ib-short-costs-ingest",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/sctrading/core/ib_short_stock.py",
+                "-ingest"
+            ],
+            "days": ["mon", "tue", "wed", "thu", "fri"],
+            "run_on_complete": [
+                "online-sample-verifier"
+            ]
+        },
+        {
+            "type": "task",
+            "name": "online-sample-verifier",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/pipelines/online_sample_verifier.py",
+                "--delete-on-pass"
+            ],
+            "days": ["mon", "tue", "wed", "thu", "fri"]
+        },
+        {
+            "type": "task",
+            "name": "ib-short-costs-snapshot",
+            "cmd": [
+                "/home/kyle/miniconda3/envs/sctrading/bin/python",
+                "/home/kyle/projects/sctrading/src/sctrading/core/ib_short_stock.py",
+                "-snapshot"
+            ],
+            "start": "04:00 am pst",
+            "stop": "05:00 pm pst",
+            "freq": "5 m",
+            "days": ["mon", "tue", "wed", "thu", "fri"]
         }
     ]
-  }
+}

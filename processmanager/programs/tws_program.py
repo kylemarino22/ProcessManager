@@ -3,6 +3,7 @@ from ..core.BaseProgram import BaseProgram
 from ..core.utils import check_ib_valid_time, list_and_kill_process
 from datetime import datetime
 import os
+import signal
 import subprocess
 from ..config import Config
 
@@ -35,13 +36,13 @@ class TWS_Program(BaseProgram):
 
             command = f"nohup /opt/ibc/twsstart.sh >> {self.log_file} 2>&1 &"
 
-            self.process = subprocess.Popen(
-                ["bash", "-lc", command],  # -l can help pick up /etc/profile; optional
+            proc = subprocess.Popen(
+                ["bash", "-lc", command],
                 preexec_fn=os.setsid,
                 env=env,
             )
-            self.job_logger.info(f"Started TWS program '{self.name}' with PID {self.process.pid}")
-            return self.process.pid
+            self.job_logger.info(f"Started TWS program '{self.name}' with PID {proc.pid}")
+            return proc.pid
 
         except Exception as e:
             self.job_logger.error(f"Failed to start TWS program '{self.name}': {e}")
@@ -55,11 +56,14 @@ class TWS_Program(BaseProgram):
         self.job_logger.debug(f"Stopping TWS program: {self.name}")
         
         try:
-            if self.process:
-                self.process.terminate()
+            if self.pid:
+                try:
+                    os.kill(self.pid, signal.SIGTERM)
+                except OSError:
+                    pass
             list_and_kill_process("ibcstart.sh")
             list_and_kill_process("xterm")
-            
+
             self.job_logger.info(f"TWS program '{self.name}' terminated.")
         except Exception as e:
             self.job_logger.error(f"Error stopping TWS program '{self.name}': {e}")
@@ -77,14 +81,14 @@ class TWS_Program(BaseProgram):
 
         if not check_ib_valid_time():
             self.job_logger.debug("Outside IB operating hours, stopping process.")
-            return False
+            return "MAINTENANCE"
 
         try:
             ib = IB()
 
             host = getattr(self.config, "ib_host", "127.0.0.1")
             port = getattr(self.config, "ib_port", 7497)
-            client_id = getattr(self.config, "ib_client_id", 987)
+            client_id = getattr(self.config, "ib_client_id", 11)
             timeout = getattr(self.config, "ib_timeout", 5)
 
             ib.connect(host, port, clientId=client_id, timeout=timeout)
