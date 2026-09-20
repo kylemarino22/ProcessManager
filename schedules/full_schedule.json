@@ -17,9 +17,15 @@
             "check_alive_freq": "1 m",
             "max_retries": 9999999,
             "run_on_start": false,
-            "start": "9:20 AM ET",
-            "end": "4:10 PM ET",
-            "days": ["mon", "tue", "wed", "thu", "fri"]
+            "start": "3:50 AM ET",
+            "end": "8:00 PM ET",
+            "days": [
+                "mon",
+                "tue",
+                "wed",
+                "thu",
+                "fri"
+            ]
         },
         {
             "type": "program",
@@ -28,42 +34,6 @@
             "keep_alive": true,
             "check_alive_freq": "1 m",
             "max_retries": 9999999
-        },
-        {
-            "type": "task",
-            "name": "eod-processor",
-            "cmd": [
-                "/home/kyle/miniconda3/envs/sctrading/bin/python",
-                "/home/kyle/projects/sctrading/src/pipelines/eod_processor.py"
-            ],
-            "start": "05:30 pm pst",
-            "days": ["mon", "tue", "wed", "thu", "fri"],
-            "run_on_complete": [
-                "ib-short-costs-ingest"
-            ]
-        },
-        {
-            "type": "task",
-            "name": "ib-short-costs-ingest",
-            "cmd": [
-                "/home/kyle/miniconda3/envs/sctrading/bin/python",
-                "/home/kyle/projects/sctrading/src/sctrading/core/ib_short_stock.py",
-                "-ingest"
-            ],
-            "days": ["mon", "tue", "wed", "thu", "fri"],
-            "run_on_complete": [
-                "online-sample-verifier"
-            ]
-        },
-        {
-            "type": "task",
-            "name": "online-sample-verifier",
-            "cmd": [
-                "/home/kyle/miniconda3/envs/sctrading/bin/python",
-                "/home/kyle/projects/sctrading/src/pipelines/online_sample_verifier.py",
-                "--delete-on-pass"
-            ],
-            "days": ["mon", "tue", "wed", "thu", "fri"]
         },
         {
             "type": "task",
@@ -76,7 +46,13 @@
             "start": "04:00 am pst",
             "stop": "05:00 pm pst",
             "freq": "5 m",
-            "days": ["mon", "tue", "wed", "thu", "fri"]
+            "days": [
+                "mon",
+                "tue",
+                "wed",
+                "thu",
+                "fri"
+            ]
         }
     ]
 }
