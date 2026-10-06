@@ -19,9 +19,10 @@ class LivePipelineProgram(BaseProgram):
 
     Unlike the other programs there is no long-lived child process: `up -d`
     exits once the containers are running, so the project is the handle and
-    `docker ps` is the health check. start() is a cold start (down then up)
+    `docker ps` is the health check. start() is a cold start (stop then up)
     so 3:50 AM ET always reloads EOD even if leftover containers are up.
-    stop() is the 8:00 PM ET teardown.
+    stop() is the 8:00 PM ET teardown. Both use `stop`, not `down`, so the
+    containers and their `docker logs` survive until the next recreate.
     """
 
     def __init__(self, schedule, config: Config):
@@ -67,7 +68,7 @@ class LivePipelineProgram(BaseProgram):
     def should_stop_outside_schedule(self, current_status):
         if current_status.get("status") == "running":
             return True
-        return bool(self._project_containers(running_only=False))
+        return bool(self._project_containers())
 
     # ------------------------------------------------------------------
     # Start / Stop
@@ -83,10 +84,10 @@ class LivePipelineProgram(BaseProgram):
         self.log_file = self._get_program_log_path()
         self.job_logger.info(f"Starting live pipeline: {self.name}")
         try:
-            down = self._compose("down")
-            if down.returncode != 0:
+            stop = self._compose("stop")
+            if stop.returncode != 0:
                 self.job_logger.warning(
-                    f"docker compose down returned {down.returncode}: {down.stderr.strip()}"
+                    f"docker compose stop returned {stop.returncode}: {stop.stderr.strip()}"
                 )
             result = self._compose("up", "-d")
             if result.returncode == 0:
@@ -104,18 +105,15 @@ class LivePipelineProgram(BaseProgram):
         self.job_logger.info(f"Stopping live pipeline: {self.name}")
         self.is_down = True
         try:
-            result = subprocess.run(
-                ["docker", "compose", "-f", COMPOSE_FILE, "-p", COMPOSE_PROJECT, "down"],
-                timeout=60, capture_output=True, text=True,
-            )
+            result = self._compose("stop", timeout=60)
             if result.returncode == 0:
-                self.job_logger.info("docker compose down complete.")
+                self.job_logger.info("docker compose stop complete.")
             else:
                 self.job_logger.warning(
-                    f"docker compose down returned {result.returncode}: {result.stderr.strip()}"
+                    f"docker compose stop returned {result.returncode}: {result.stderr.strip()}"
                 )
         except Exception as e:
-            self.job_logger.error(f"docker compose down failed: {e}")
+            self.job_logger.error(f"docker compose stop failed: {e}")
 
     # ------------------------------------------------------------------
     # Monitor
