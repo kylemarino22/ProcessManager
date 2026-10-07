@@ -37,6 +37,28 @@
         },
         {
             "type": "task",
+            "name": "eod-dispatch",
+            "cmd": [
+                "/home/kyle/.local/bin/gh",
+                "workflow",
+                "run",
+                "eod.yml",
+                "--repo",
+                "kylemarino22/sctrading",
+                "--ref",
+                "main"
+            ],
+            "start": "06:30 pm pst",
+            "days": [
+                "mon",
+                "tue",
+                "wed",
+                "thu",
+                "fri"
+            ]
+        },
+        {
+            "type": "task",
             "name": "ib-short-costs-snapshot",
             "cmd": [
                 "/home/kyle/miniconda3/envs/sctrading/bin/python",
